@@ -9,6 +9,8 @@ import {
   Shuffle,
   Repeat,
   GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 
 interface QueuePanelProps {
@@ -62,7 +64,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
     setLoading(false);
   };
 
-  // Drag Handlers
+  // Smooth Drag Handlers
   const handleDragStart = (e: React.DragEvent, index: number) => {
     if (!canManage) return;
     setDraggedIndex(index);
@@ -92,6 +94,18 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
     }
     setDraggedIndex(null);
     setDragOverIndex(null);
+  };
+
+  const handleMoveUp = (index: number) => {
+    if (index > 0) {
+      onReorderQueue(index, index - 1);
+    }
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index < queue.length - 1) {
+      onReorderQueue(index, index + 1);
+    }
   };
 
   return (
@@ -349,34 +363,96 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       gap: 8,
-                      backgroundColor: isOver
+                      backgroundColor: isDragging
+                        ? 'var(--surface-dark-subtle)'
+                        : isOver
                         ? 'var(--surface-dark-hover)'
                         : 'var(--surface-dark-alt)',
                       borderRadius: 'var(--radius-md)',
                       padding: '8px 10px',
                       border: isOver
                         ? '1px solid var(--brand-green)'
+                        : isDragging
+                        ? '1px dashed rgba(0, 255, 163, 0.4)'
                         : '1px solid var(--border-color)',
-                      opacity: isDragging ? 0.4 : 1,
+                      opacity: isDragging ? 0.35 : 1,
                       cursor: canManage ? 'grab' : 'default',
-                      transform: isOver ? 'scale(1.01)' : 'none',
-                      transition: 'all 0.15s ease',
+                      transition: 'background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease',
                       position: 'relative',
                     }}
                   >
-                    {/* Drag Handle (Admin / Manager only) */}
+                    {/* Drag Handle & Step Buttons (Admin / Manager only) */}
                     {canManage && (
                       <div
                         style={{
-                          color: 'var(--text-dim)',
-                          cursor: 'grab',
                           display: 'flex',
                           alignItems: 'center',
-                          padding: '2px',
+                          gap: 1,
+                          color: 'var(--text-dim)',
                         }}
-                        title="드래그하여 순서 변경"
                       >
-                        <GripVertical size={14} />
+                        {/* Grip Handle */}
+                        <div
+                          style={{
+                            cursor: 'grab',
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '2px 0',
+                          }}
+                          title="드래그하여 순서 변경"
+                        >
+                          <GripVertical size={14} />
+                        </div>
+
+                        {/* Up / Down Arrow Step Buttons */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveUp(index);
+                            }}
+                            disabled={index === 0}
+                            title="위로 이동"
+                            style={{
+                              padding: 0,
+                              lineHeight: 1,
+                              opacity: index === 0 ? 0.2 : 0.6,
+                              cursor: index === 0 ? 'default' : 'pointer',
+                              color: 'var(--text-primary)',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (index > 0) e.currentTarget.style.opacity = '1';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (index > 0) e.currentTarget.style.opacity = '0.6';
+                            }}
+                          >
+                            <ChevronUp size={11} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveDown(index);
+                            }}
+                            disabled={index === queue.length - 1}
+                            title="아래로 이동"
+                            style={{
+                              padding: 0,
+                              lineHeight: 1,
+                              opacity: index === queue.length - 1 ? 0.2 : 0.6,
+                              cursor: index === queue.length - 1 ? 'default' : 'pointer',
+                              color: 'var(--text-primary)',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (index < queue.length - 1) e.currentTarget.style.opacity = '1';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (index < queue.length - 1) e.currentTarget.style.opacity = '0.6';
+                            }}
+                          >
+                            <ChevronDown size={11} />
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -393,7 +469,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                       }}
                     />
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0, pointerEvents: 'none' }}>
                       <p
                         style={{
                           fontSize: 12,

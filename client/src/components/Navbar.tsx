@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { MockLoginModal } from './MockLoginModal';
-import { LogOut, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { LogOut, ChevronDown, CheckCircle2, Sun, Moon } from 'lucide-react';
 
 interface NavbarProps {
   onGoHome?: () => void;
@@ -9,6 +10,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
   const { user, loginWithChzzk, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [showMockModal, setShowMockModal] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
           position: 'sticky',
           top: 0,
           zIndex: 100,
+          transition: 'background-color 0.2s ease, border-color 0.2s ease',
         }}
       >
         {/* Simple Text Logo */}
@@ -48,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
             fontSize: 18,
             fontWeight: 800,
             letterSpacing: '-0.5px',
-            color: '#ffffff',
+            color: 'var(--text-primary)',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
@@ -57,8 +60,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
           <span>chz-room</span>
         </div>
 
-        {/* Right Auth Section */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Right Section: Theme Toggle + Auth */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Dark / Light Mode Toggle Button */}
+          <button
+            className="btn-icon"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            aria-label="Toggle theme"
+            style={{ width: 34, height: 34 }}
+          >
+            {theme === 'dark' ? (
+              <Sun size={17} color="var(--brand-green)" />
+            ) : (
+              <Moon size={17} color="var(--text-secondary)" />
+            )}
+          </button>
+
           {user ? (
             /* Logged in: Profile Pill with Dropdown */
             <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -69,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                   alignItems: 'center',
                   gap: 8,
                   backgroundColor: dropdownOpen ? 'var(--surface-dark-hover)' : 'var(--surface-dark-alt)',
-                  padding: '5px 12px 5px 6px',
+                  padding: '4px 12px 4px 5px',
                   borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border-color)',
                   cursor: 'pointer',
@@ -136,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                     backgroundColor: 'var(--surface-dark)',
                     border: '1px solid var(--border-color)',
                     borderRadius: 'var(--radius-md)',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
+                    boxShadow: 'var(--shadow-card)',
                     padding: '6px',
                     zIndex: 1000,
                     animation: 'fadeIn 0.15s ease',
@@ -180,14 +198,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
             </div>
           ) : (
             /* Not logged in: Simple Login Buttons */
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button
                 onClick={() => setShowMockModal(true)}
                 style={{
                   fontSize: 12,
                   color: 'var(--text-dim)',
                   cursor: 'pointer',
-                  padding: '4px 8px',
+                  padding: '4px 6px',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-dim)')}

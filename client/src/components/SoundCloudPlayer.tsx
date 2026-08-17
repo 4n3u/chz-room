@@ -199,10 +199,24 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
     widgetRef.current.setVolume(nextMuted ? 0 : 100);
   };
 
-  const trackUrl = currentVideo?.soundcloudUrl || currentVideo?.videoId || '';
-  const widgetSrc = `https://w.soundcloud.com/player/?url=${encodeURIComponent(
-    trackUrl
-  )}&color=%2300ffa3&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true`;
+  const getWidgetSrc = () => {
+    if (currentVideo?.embedUrl) {
+      let src = currentVideo.embedUrl;
+      if (!src.includes('auto_play')) src += '&auto_play=true';
+      if (!src.includes('color=')) src += '&color=%2300ffa3';
+      if (!src.includes('visual=')) src += '&visual=true';
+      if (!src.includes('show_artwork=')) src += '&show_artwork=true';
+      return src;
+    }
+
+    const rawTrackUrl = currentVideo?.soundcloudUrl || currentVideo?.videoId || '';
+    const cleanTrackUrl = rawTrackUrl.split('?')[0];
+    return `https://w.soundcloud.com/player/?url=${encodeURIComponent(
+      cleanTrackUrl
+    )}&color=%2300ffa3&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true`;
+  };
+
+  const widgetSrc = getWidgetSrc();
 
   return (
     <div

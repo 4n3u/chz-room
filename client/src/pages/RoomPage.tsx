@@ -144,13 +144,16 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               alignItems: 'center',
               gap: 8,
               marginBottom: 10,
+              height: 40,
             }}
           >
             {/* Tab Selector Buttons */}
             <div
               style={{
                 flex: 1,
+                height: 40,
                 display: 'flex',
+                alignItems: 'center',
                 backgroundColor: 'var(--surface-dark)',
                 borderRadius: 'var(--radius-md)',
                 padding: 3,
@@ -161,19 +164,20 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 onClick={() => setActiveTab('queue')}
                 style={{
                   flex: 1,
+                  height: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  padding: '7px 0',
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: 7,
                   fontSize: 13,
                   fontWeight: 700,
                   color: activeTab === 'queue' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                   backgroundColor: activeTab === 'queue' ? 'var(--brand-green)' : 'transparent',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <ListMusic size={14} />
+                <ListMusic size={15} />
                 <span>대기열 ({queue.length})</span>
               </button>
 
@@ -181,37 +185,49 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 onClick={() => setActiveTab('members')}
                 style={{
                   flex: 1,
+                  height: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  padding: '7px 0',
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: 7,
                   fontSize: 13,
                   fontWeight: 700,
                   color: activeTab === 'members' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                   backgroundColor: activeTab === 'members' ? 'var(--brand-green)' : 'transparent',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <Users size={14} />
+                <Users size={15} />
                 <span>참가자 ({members.length})</span>
               </button>
             </div>
 
             {/* Compact Invite Link Copy Button */}
             <button
-              className="btn-secondary"
               onClick={handleCopyLink}
               title="초대 링크 복사"
               style={{
-                padding: '7px 12px',
-                fontSize: 12,
-                fontWeight: 600,
+                height: 40,
+                padding: '0 14px',
+                fontSize: 13,
+                fontWeight: 700,
                 whiteSpace: 'nowrap',
-                height: 38,
+                backgroundColor: 'var(--surface-dark)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                color: copied ? 'var(--brand-green)' : 'var(--text-primary)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-dark-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-dark)')}
             >
-              {copied ? <Check size={14} color="var(--brand-green)" /> : <Copy size={14} />}
+              {copied ? <Check size={15} color="var(--brand-green)" /> : <Copy size={15} />}
               <span>{copied ? '복사됨' : '초대 링크'}</span>
             </button>
           </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
 import { LobbyPage } from './pages/LobbyPage';
 import { RoomPage } from './pages/RoomPage';
 
@@ -48,13 +49,14 @@ export function App() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-black)' }}>
       <Navbar onGoHome={handleLeaveRoom} />
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {currentRoomId ? (
           <RoomPage roomId={currentRoomId} onLeaveRoom={handleLeaveRoom} />
         ) : (
           <LobbyPage onJoinRoom={handleJoinRoom} />
         )}
       </main>
+      <Footer />
     </div>
   );
 }

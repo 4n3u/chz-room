@@ -296,7 +296,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
         </div>
 
         {/* Right: Sidebar Tabs + Copy Link Button */}
-        <div style={{ height: 'calc(100vh - 100px)', minHeight: 480, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ height: 'calc(100vh - 130px)', minHeight: 480, display: 'flex', flexDirection: 'column' }}>
           {/* Top Header Actions (Unified Toolbar with Tabs & Invite Link) */}
           <div
             style={{

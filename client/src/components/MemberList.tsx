@@ -1,6 +1,6 @@
 import React from 'react';
 import { RoomMember, UserRole } from '../types';
-import { Users, Crown, Shield, User, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Crown, Shield, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 interface MemberListProps {
   members: RoomMember[];
@@ -18,10 +18,10 @@ export const MemberList: React.FC<MemberListProps> = ({
   const isHost = myRole === 'host';
 
   // Sort members: Host first, then Mods, then Viewers
-  const rolePriority: Record<UserRole, number> = { host: 1, mod: 2, viewer: 3 };
-  const sortedMembers = [...members].sort(
-    (a, b) => rolePriority[a.role] - rolePriority[b.role]
-  );
+  const sortedMembers = [...members].sort((a, b) => {
+    const roleWeight = { host: 3, mod: 2, viewer: 1 };
+    return roleWeight[b.role] - roleWeight[a.role];
+  });
 
   return (
     <div
@@ -38,25 +38,23 @@ export const MemberList: React.FC<MemberListProps> = ({
       {/* Header */}
       <div
         style={{
-          padding: '16px',
+          padding: '14px 16px',
           borderBottom: '1px solid var(--border-color)',
-          backgroundColor: 'var(--surface-dark-alt)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Users size={18} color="var(--brand-green)" />
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>참가자 목록</h3>
-        </div>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+          방 참가자 목록
+        </span>
         <span
           style={{
             fontSize: 12,
-            backgroundColor: 'var(--surface-dark-hover)',
-            color: 'var(--text-secondary)',
+            backgroundColor: 'var(--surface-dark-subtle)',
             padding: '2px 8px',
             borderRadius: 'var(--radius-full)',
+            color: 'var(--brand-green)',
             fontWeight: 700,
           }}
         >
@@ -101,69 +99,45 @@ export const MemberList: React.FC<MemberListProps> = ({
                 }}
               >
                 {/* User Info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                  {member.user.channelImageUrl ? (
-                    <img
-                      src={member.user.channelImageUrl}
-                      alt={member.user.channelName}
-                      style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <div
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--surface-dark-subtle)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      <User size={16} color="var(--text-secondary)" />
-                    </div>
-                  )}
-
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: 'var(--text-primary)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {member.user.channelName}
+                      {member.user.channelName}
+                    </span>
+                    {member.user.verifiedMark && (
+                      <CheckCircle2 size={13} color="var(--brand-green)" fill="var(--brand-green)" />
+                    )}
+                    {isMe && (
+                      <span style={{ fontSize: 10, color: 'var(--brand-green)', fontWeight: 800 }}>
+                        (나)
                       </span>
-                      {member.user.verifiedMark && (
-                        <CheckCircle2 size={13} color="var(--brand-green)" fill="var(--brand-green)" />
-                      )}
-                      {isMe && (
-                        <span style={{ fontSize: 10, color: 'var(--brand-green)', fontWeight: 800 }}>
-                          (나)
-                        </span>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Role Badge */}
-                    <div style={{ marginTop: 2 }}>
-                      {member.role === 'host' && (
-                        <span className="badge badge-host">
-                          <Crown size={10} /> 어드민
-                        </span>
-                      )}
-                      {member.role === 'mod' && (
-                        <span className="badge badge-mod">
-                          <Shield size={10} /> 매니저
-                        </span>
-                      )}
-                      {member.role === 'viewer' && (
-                        <span className="badge badge-viewer">시청자</span>
-                      )}
-                    </div>
+                  {/* Role Badge */}
+                  <div style={{ marginTop: 2 }}>
+                    {member.role === 'host' && (
+                      <span className="badge badge-host">
+                        <Crown size={10} /> 어드민
+                      </span>
+                    )}
+                    {member.role === 'mod' && (
+                      <span className="badge badge-mod">
+                        <Shield size={10} /> 매니저
+                      </span>
+                    )}
+                    {member.role === 'viewer' && (
+                      <span className="badge badge-viewer">시청자</span>
+                    )}
                   </div>
                 </div>
 

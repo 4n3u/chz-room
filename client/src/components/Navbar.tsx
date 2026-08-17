@@ -70,47 +70,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 6,
                   backgroundColor: dropdownOpen ? 'var(--surface-dark-hover)' : 'var(--surface-dark-alt)',
-                  padding: '4px 12px 4px 5px',
+                  padding: '6px 12px',
                   borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border-color)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
               >
-                {user.channelImageUrl ? (
-                  <img
-                    src={user.channelImageUrl}
-                    alt={user.channelName}
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--surface-dark-subtle)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--brand-green)',
-                    }}
-                  >
-                    {user.channelName.charAt(0)}
-                  </div>
-                )}
-
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
                   {user.channelName}
                 </span>
 

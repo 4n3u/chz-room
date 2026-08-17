@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { MockLoginModal } from '../components/MockLoginModal';
+import { LegalModal } from '../components/LegalModal';
 import { Plus, ArrowRight, Link } from 'lucide-react';
 
 interface LobbyPageProps {
@@ -14,6 +15,8 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMockLoginModal, setShowMockLoginModal] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalTab, setLegalTab] = useState<'privacy' | 'terms'>('privacy');
 
   // 1-Click Instant Room Creation
   const handleCreateRoom = async () => {
@@ -69,6 +72,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
         justifyContent: 'center',
         padding: '24px',
         textAlign: 'center',
+        position: 'relative',
       }}
     >
       <div style={{ maxWidth: 420, width: '100%' }}>
@@ -165,12 +169,80 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
         </form>
       </div>
 
+      {/* Ultra-minimal bottom legal bar */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 14,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          fontSize: 11,
+          color: 'var(--text-dim)',
+          padding: '0 16px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span>치즈룸</span>
+        <span>•</span>
+        <button
+          onClick={() => {
+            setLegalTab('privacy');
+            setShowLegalModal(true);
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            color: 'var(--text-muted)',
+            fontSize: 11,
+            cursor: 'pointer',
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--brand-green)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+        >
+          개인정보 처리방침
+        </button>
+        <span>•</span>
+        <button
+          onClick={() => {
+            setLegalTab('terms');
+            setShowLegalModal(true);
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            color: 'var(--text-muted)',
+            fontSize: 11,
+            cursor: 'pointer',
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--brand-green)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+        >
+          서비스 이용약관
+        </button>
+        <span>•</span>
+        <span>NAVER 치지직 & YouTube 비공식 서드파티</span>
+      </div>
+
       <MockLoginModal
         isOpen={showMockLoginModal}
         onClose={() => {
           setShowMockLoginModal(false);
           handleCreateRoom();
         }}
+      />
+
+      <LegalModal
+        isOpen={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        initialTab={legalTab}
       />
     </div>
   );

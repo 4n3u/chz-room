@@ -28,14 +28,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         justifyContent: 'center',
         zIndex: 2000,
         padding: '16px',
+        animation: 'fadeIn 0.15s ease',
       }}
       onClick={onClose}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: 600,
-          maxHeight: '85vh',
+          maxWidth: 460,
           backgroundColor: 'var(--surface-dark)',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-color)',
@@ -46,10 +46,10 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header with Segmented Tabs */}
         <div
           style={{
-            padding: '14px 20px',
+            padding: '14px 16px',
             borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
@@ -57,44 +57,54 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             backgroundColor: 'var(--surface-dark-alt)',
           }}
         >
-          <div style={{ display: 'flex', gap: 8 }}>
+          {/* Segmented Tab */}
+          <div
+            style={{
+              display: 'inline-flex',
+              backgroundColor: 'var(--surface-dark)',
+              padding: 3,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              gap: 3,
+            }}
+          >
             <button
               onClick={() => setActiveTab('privacy')}
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
-                padding: '6px 12px',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
-                backgroundColor: activeTab === 'privacy' ? 'var(--brand-green-glow)' : 'transparent',
-                color: activeTab === 'privacy' ? 'var(--brand-green)' : 'var(--text-muted)',
+                backgroundColor: activeTab === 'privacy' ? 'var(--brand-green)' : 'transparent',
+                color: activeTab === 'privacy' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
                 transition: 'all 0.15s ease',
               }}
             >
-              <ShieldCheck size={15} />
+              <ShieldCheck size={14} />
               <span>개인정보 처리방침</span>
             </button>
 
             <button
               onClick={() => setActiveTab('terms')}
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
-                padding: '6px 12px',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
-                backgroundColor: activeTab === 'terms' ? 'var(--brand-green-glow)' : 'transparent',
-                color: activeTab === 'terms' ? 'var(--brand-green)' : 'var(--text-muted)',
+                backgroundColor: activeTab === 'terms' ? 'var(--brand-green)' : 'transparent',
+                color: activeTab === 'terms' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
                 transition: 'all 0.15s ease',
               }}
             >
-              <FileText size={15} />
+              <FileText size={14} />
               <span>서비스 이용약관</span>
             </button>
           </div>
@@ -102,113 +112,113 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           <button
             className="btn-icon"
             onClick={onClose}
-            style={{ width: 30, height: 30 }}
+            style={{ width: 28, height: 28 }}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
-        {/* Content Body */}
-        <div
-          style={{
-            padding: '20px',
-            overflowY: 'auto',
-            fontSize: 13,
-            lineHeight: 1.7,
-            color: 'var(--text-secondary)',
-          }}
-        >
+        {/* Concise Content Body */}
+        <div style={{ padding: '18px 20px', fontSize: 13, color: 'var(--text-secondary)' }}>
           {activeTab === 'privacy' ? (
-            <div>
-              <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>
-                개인정보 처리방침
-              </h3>
-              <p style={{ marginBottom: 14 }}>
-                치즈룸(이하 "서비스")은 이용자의 개인정보를 소중히 여기며, 「개인정보 보호법」 등 관련 법령을 준수합니다.
-              </p>
-
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                1. 수집하는 개인정보 항목 및 수집 방법
-              </h4>
-              <ul style={{ paddingLeft: 18, marginBottom: 14 }}>
-                <li><strong>수집 항목:</strong> 네이버 치지직(CHZZK) 채널 ID (UID), 채널 닉네임, 인증 마크 유무</li>
-                <li><strong>수집 방법:</strong> 네이버 치지직 공식 OAuth 2.0 계정 연동을 통한 자동 수집</li>
-              </ul>
-
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                2. 개인정보의 수집 및 이용 목적
-              </h4>
-              <ul style={{ paddingLeft: 18, marginBottom: 14 }}>
-                <li>동시 시청 방(Room) 생성 및 어드민 / 매니저 / 시청자 권한 식별</li>
-                <li>대기열 영상 등록자 표기 및 방 내 참가자 목록 식별</li>
-              </ul>
-
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                3. 개인정보의 보유 및 이용 기간
-              </h4>
-              <p style={{ marginBottom: 14 }}>
-                이용자의 로그인 세션 정보는 브라우저 이용 및 방 퇴장 시까지 유지되며, 로그아웃 시 브라우저 내에서 즉시 파기됩니다.
-              </p>
-
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                4. 제3자 제공 및 위탁
-              </h4>
-              <p style={{ marginBottom: 14 }}>
-                서비스는 이용자의 개인정보를 외부에 제공하거나 위탁하지 않습니다.
-              </p>
-
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                5. 개인정보 보호책임자 및 문의
-              </h4>
-              <p style={{ marginBottom: 8 }}>
-                개인정보 보호 및 서비스 관련 문의는 아래 연락처로 접수해 주시기 바랍니다.
-              </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div
                 style={{
                   backgroundColor: 'var(--surface-dark-alt)',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 12,
-                  color: 'var(--text-muted)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
                 }}
               >
-                관리자: 치즈룸 운영팀 (chz-room)
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontSize: 13 }}>
+                  📌 수집하는 항목
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  네이버 치지직 공식 계정 연동을 통해 <strong>채널 ID (UID), 닉네임, 인증 마크</strong>만 수집합니다. 비밀번호나 민감 정보는 절대 수집하지 않습니다.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-dark-alt)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
+                }}
+              >
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontSize: 13 }}>
+                  🎯 이용 목적 및 보유 기간
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  방 생성자/매니저 권한 식별과 대기열 등록자 표기에만 사용되며, <strong>로그아웃 또는 방 퇴장 시 세션 정보가 즉시 파기</strong>됩니다.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-dark-alt)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
+                }}
+              >
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontSize: 13 }}>
+                  🔒 제3자 제공
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  이용자의 개인정보를 외부 제3자에게 절대 제공하거나 위탁하지 않습니다.
+                </p>
               </div>
             </div>
           ) : (
-            <div>
-              <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>
-                서비스 이용약관
-              </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-dark-alt)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
+                }}
+              >
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontSize: 13 }}>
+                  💡 비공식 팬 프로젝트
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  치즈룸(chz-room)은 NAVER 치지직 및 YouTube(Google LLC)와 공식 제휴 관계가 없는 비공식 동시시청 도구입니다.
+                </p>
+              </div>
 
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                제1조 (목적)
-              </h4>
-              <p style={{ marginBottom: 14 }}>
-                본 약관은 치즈룸(이하 "서비스")이 제공하는 유튜브 동시 시청 및 소통 기능의 이용에 관한 권리와 의무를 규정함을 목적으로 합니다.
-              </p>
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-dark-alt)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
+                }}
+              >
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontSize: 13 }}>
+                  🎬 콘텐츠 및 저작권
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  재생되는 모든 영상의 저작권은 <strong>원작작자 및 YouTube</strong>에 있으며, 본 서비스는 YouTube 공식 IFrame API 스트리밍 기능만을 중계합니다.
+                </p>
+              </div>
 
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                제2조 (비공식 서드파티 서비스 고지)
-              </h4>
-              <p style={{ marginBottom: 14 }}>
-                본 서비스는 네이버(NAVER Corp.), 치지직(CHZZK), 및 구글(Google LLC / YouTube)과 공식적인 제휴 관계가 없는 비공식 팬/서드파티 프로젝트입니다.
-              </p>
-
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                제3조 (콘텐츠 및 저작권)
-              </h4>
-              <ul style={{ paddingLeft: 18, marginBottom: 14 }}>
-                <li>서비스 내에서 재생되는 모든 동영상 콘텐츠의 저작권 및 권리는 YouTube 및 해당 영상의 원저작자에게 귀속됩니다.</li>
-                <li>본 서비스는 YouTube IFrame API를 통한 임베드 스트리밍 기술만을 활용하며, 영상을 서버에 직접 저장하거나 다운로드하지 않습니다.</li>
-              </ul>
-
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 14, marginBottom: 6 }}>
-                제4조 (이용자의 의무 및 금지행위)
-              </h4>
-              <p style={{ marginBottom: 14 }}>
-                이용자는 타인의 권리를 침해하거나, 불법/유해한 영상 링크를 대기열에 고의로 등록하여 다른 참가자에게 피해를 주는 행위를 하여서는 안 됩니다.
-              </p>
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-dark-alt)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
+                }}
+              >
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontSize: 13 }}>
+                  🚫 이용자 준수사항
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  타인에게 불쾌감을 주거나 불법/유해한 영상을 고의로 등록하는 행위는 엄격히 금지됩니다.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -216,7 +226,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         {/* Footer */}
         <div
           style={{
-            padding: '10px 20px',
+            padding: '10px 16px',
             borderTop: '1px solid var(--border-color)',
             backgroundColor: 'var(--surface-dark-alt)',
             display: 'flex',

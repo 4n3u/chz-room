@@ -137,86 +137,79 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
 
         {/* Right: Sidebar Tabs + Copy Link Button */}
         <div style={{ height: 'calc(100vh - 100px)', minHeight: 480, display: 'flex', flexDirection: 'column' }}>
-          {/* Top Header Actions (Tabs + Compact Copy Button) */}
+          {/* Top Header Actions (Unified Toolbar with Tabs & Invite Link) */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              backgroundColor: 'var(--surface-dark)',
+              borderRadius: 'var(--radius-md)',
+              padding: 3,
+              border: '1px solid var(--border-color)',
               marginBottom: 10,
-              height: 40,
+              gap: 3,
             }}
           >
-            {/* Tab Selector Buttons */}
-            <div
+            {/* Queue Tab Button */}
+            <button
+              onClick={() => setActiveTab('queue')}
               style={{
                 flex: 1,
-                height: 40,
+                height: 34,
                 display: 'flex',
                 alignItems: 'center',
-                backgroundColor: 'var(--surface-dark)',
-                borderRadius: 'var(--radius-md)',
-                padding: 3,
-                border: '1px solid var(--border-color)',
+                justifyContent: 'center',
+                gap: 6,
+                borderRadius: 7,
+                fontSize: 13,
+                fontWeight: 700,
+                color: activeTab === 'queue' ? 'var(--text-on-brand)' : 'var(--text-muted)',
+                backgroundColor: activeTab === 'queue' ? 'var(--brand-green)' : 'transparent',
+                transition: 'all 0.15s ease',
               }}
             >
-              <button
-                onClick={() => setActiveTab('queue')}
-                style={{
-                  flex: 1,
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  borderRadius: 7,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: activeTab === 'queue' ? 'var(--text-on-brand)' : 'var(--text-muted)',
-                  backgroundColor: activeTab === 'queue' ? 'var(--brand-green)' : 'transparent',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <ListMusic size={15} />
-                <span>대기열 ({queue.length})</span>
-              </button>
+              <ListMusic size={15} />
+              <span>대기열 ({queue.length})</span>
+            </button>
 
-              <button
-                onClick={() => setActiveTab('members')}
-                style={{
-                  flex: 1,
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  borderRadius: 7,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: activeTab === 'members' ? 'var(--text-on-brand)' : 'var(--text-muted)',
-                  backgroundColor: activeTab === 'members' ? 'var(--brand-green)' : 'transparent',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Users size={15} />
-                <span>참가자 ({members.length})</span>
-              </button>
-            </div>
+            {/* Members Tab Button */}
+            <button
+              onClick={() => setActiveTab('members')}
+              style={{
+                flex: 1,
+                height: 34,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                borderRadius: 7,
+                fontSize: 13,
+                fontWeight: 700,
+                color: activeTab === 'members' ? 'var(--text-on-brand)' : 'var(--text-muted)',
+                backgroundColor: activeTab === 'members' ? 'var(--brand-green)' : 'transparent',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Users size={15} />
+              <span>참가자 ({members.length})</span>
+            </button>
 
-            {/* Compact Invite Link Copy Button */}
+            {/* Divider */}
+            <div style={{ width: 1, height: 18, backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
+
+            {/* Compact Invite Link Copy Button (Identical Inner Button Style) */}
             <button
               onClick={handleCopyLink}
               title="초대 링크 복사"
               style={{
-                height: 40,
-                padding: '0 14px',
+                height: 34,
+                padding: '0 12px',
                 fontSize: 13,
                 fontWeight: 700,
                 whiteSpace: 'nowrap',
-                backgroundColor: 'var(--surface-dark)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                color: copied ? 'var(--brand-green)' : 'var(--text-primary)',
+                backgroundColor: copied ? 'var(--brand-green-glow)' : 'transparent',
+                borderRadius: 7,
+                color: copied ? 'var(--brand-green)' : 'var(--text-secondary)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -224,10 +217,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-dark-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-dark)')}
+              onMouseEnter={(e) => {
+                if (!copied) e.currentTarget.style.backgroundColor = 'var(--surface-dark-hover)';
+              }}
+              onMouseLeave={(e) => {
+                if (!copied) e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
-              {copied ? <Check size={15} color="var(--brand-green)" /> : <Copy size={15} />}
+              {copied ? <Check size={14} color="var(--brand-green)" /> : <Copy size={14} />}
               <span>{copied ? '복사됨' : '초대 링크'}</span>
             </button>
           </div>

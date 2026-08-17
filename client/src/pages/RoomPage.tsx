@@ -170,22 +170,19 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
             onVideoEnded={skipNext}
           />
 
-          {/* Current Video Info Banner (Clean typography & YouTube tab icon) */}
+          {/* Current Video Info (Clean YouTube-style typography without card box) */}
           {currentVideo && (
             <div
               style={{
                 marginTop: 12,
-                padding: '12px 16px',
-                backgroundColor: 'var(--surface-dark)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
+                padding: '2px 2px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 6,
+                gap: 8,
               }}
             >
               {/* Title & External YouTube Link */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <h2
                   style={{
                     fontSize: 16,
@@ -207,24 +204,21 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: 32,
-                    height: 32,
+                    width: 30,
+                    height: 30,
                     borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'var(--surface-dark-alt)',
-                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'transparent',
                     color: 'var(--text-muted)',
                     flexShrink: 0,
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = 'var(--brand-green)';
-                    e.currentTarget.style.borderColor = 'var(--brand-green)';
                     e.currentTarget.style.backgroundColor = 'var(--brand-green-glow)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.color = 'var(--text-muted)';
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.backgroundColor = 'var(--surface-dark-alt)';
+                    e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
                   <ExternalLink size={16} />

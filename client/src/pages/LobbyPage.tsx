@@ -82,15 +82,14 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
             backgroundColor: 'rgba(0, 255, 163, 0.12)',
             border: '1px solid rgba(0, 255, 163, 0.3)',
             borderRadius: 'var(--radius-full)',
-            padding: '5px 14px',
-            fontSize: 13,
+            padding: '4px 12px',
+            fontSize: 12,
             fontWeight: 700,
             color: 'var(--brand-green)',
-            marginBottom: 20,
+            marginBottom: 16,
           }}
         >
-          <span>🧀</span>
-          <span>CHZ-ROOM • 치즈룸</span>
+          <span>CHZ-ROOM</span>
         </div>
 
         <h1

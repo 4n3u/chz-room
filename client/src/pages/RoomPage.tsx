@@ -51,12 +51,15 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     members,
     currentVideo,
     queue,
+    isShuffle,
     playback,
     error,
     clearError,
     sendVideoControl,
     addToQueue,
     removeFromQueue,
+    reorderQueue,
+    toggleShuffle,
     skipNext,
     updateRole,
   } = useSocket({ roomId, user });
@@ -347,8 +350,11 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 currentVideo={currentVideo}
                 queue={queue}
                 role={role}
+                isShuffle={isShuffle}
                 onAddToQueue={addToQueue}
                 onRemoveFromQueue={removeFromQueue}
+                onReorderQueue={reorderQueue}
+                onToggleShuffle={toggleShuffle}
                 onSkipNext={skipNext}
               />
             ) : (

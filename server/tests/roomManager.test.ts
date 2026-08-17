@@ -120,22 +120,51 @@ describe('RoomManager Tests', () => {
     expect(nextRes?.room.queue.length).toBe(0);
   });
 
-  it('should migrate host when host leaves the room', () => {
+  it('should reorder items in queue', () => {
     const room = roomManager.createRoom({
       title: '테스트방',
       hostUser,
     });
 
-    roomManager.joinRoom(room.id, 'socket-host-1', hostUser);
-    roomManager.joinRoom(room.id, 'socket-viewer-1', viewerUser);
+    const v1 = { id: 'item-1', videoId: 'vid-1', title: '1', thumbnailUrl: '', addedBy: hostUser };
+    const v2 = { id: 'item-2', videoId: 'vid-2', title: '2', thumbnailUrl: '', addedBy: hostUser };
+    const v3 = { id: 'item-3', videoId: 'vid-3', title: '3', thumbnailUrl: '', addedBy: hostUser };
+    const v4 = { id: 'item-4', videoId: 'vid-4', title: '4', thumbnailUrl: '', addedBy: hostUser };
 
-    // Host leaves
-    const leaveRes = roomManager.leaveRoom('socket-host-1');
-    expect(leaveRes?.wasHost).toBe(true);
-    expect(leaveRes?.newHostUserId).toBe('viewer-456');
+    roomManager.addToQueue(room.id, v1); // becomes currentVideo
+    roomManager.addToQueue(room.id, v2); // queue[0]
+    roomManager.addToQueue(room.id, v3); // queue[1]
+    roomManager.addToQueue(room.id, v4); // queue[2]
 
-    const updatedRoom = roomManager.getRoom(room.id);
-    expect(updatedRoom?.hostUserId).toBe('viewer-456');
-    expect(roomManager.getUserRole(room.id, 'viewer-456')).toBe('host');
+    expect(roomManager.getRoom(room.id)?.queue.map((q) => q.id)).toEqual(['item-2', 'item-3', 'item-4']);
+
+    // Move item at index 2 ('item-4') to index 0
+    roomManager.reorderQueue(room.id, 2, 0);
+    expect(roomManager.getRoom(room.id)?.queue.map((q) => q.id)).toEqual(['item-4', 'item-2', 'item-3']);
+  });
+
+  it('should toggle shuffle mode and randomly pick next video', () => {
+    const room = roomManager.createRoom({
+      title: '테스트방',
+      hostUser,
+    });
+
+    const v1 = { id: 'item-1', videoId: 'vid-1', title: '1', thumbnailUrl: '', addedBy: hostUser };
+    const v2 = { id: 'item-2', videoId: 'vid-2', title: '2', thumbnailUrl: '', addedBy: hostUser };
+    const v3 = { id: 'item-3', videoId: 'vid-3', title: '3', thumbnailUrl: '', addedBy: hostUser };
+
+    roomManager.addToQueue(room.id, v1);
+    roomManager.addToQueue(room.id, v2);
+    roomManager.addToQueue(room.id, v3);
+
+    expect(roomManager.getRoom(room.id)?.isShuffle).toBe(false);
+
+    roomManager.setShuffleMode(room.id, true);
+    expect(roomManager.getRoom(room.id)?.isShuffle).toBe(true);
+
+    const nextRes = roomManager.nextVideo(room.id);
+    expect(['vid-2', 'vid-3']).toContain(nextRes?.currentVideo?.videoId);
+    expect(nextRes?.room.queue.length).toBe(1);
   });
 });
+

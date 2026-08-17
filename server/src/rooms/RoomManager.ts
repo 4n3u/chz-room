@@ -48,6 +48,7 @@ export class RoomManager {
       playback: initialPlayback,
       queue: [],
       members: [],
+      isShuffle: false,
     };
 
     this.rooms.set(id, room);
@@ -260,13 +261,54 @@ export class RoomManager {
   }
 
   /**
-   * Skip to next video in queue
+   * Reorder items in the queue (drag & drop)
+   */
+  public reorderQueue(roomId: string, fromIndex: number, toIndex: number): RoomState | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    if (
+      fromIndex < 0 ||
+      fromIndex >= room.queue.length ||
+      toIndex < 0 ||
+      toIndex >= room.queue.length
+    ) {
+      return room;
+    }
+
+    const [movedItem] = room.queue.splice(fromIndex, 1);
+    room.queue.splice(toIndex, 0, movedItem);
+    return room;
+  }
+
+  /**
+   * Set playback mode (Sequential vs Shuffle)
+   */
+  public setShuffleMode(roomId: string, isShuffle: boolean): RoomState | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    room.isShuffle = isShuffle;
+    return room;
+  }
+
+  /**
+   * Skip to next video in queue (Sequential or Random Shuffle)
    */
   public nextVideo(roomId: string): { currentVideo: VideoItem | null; room: RoomState } | null {
     const room = this.rooms.get(roomId);
     if (!room) return null;
 
-    const nextVideo = room.queue.shift() || null;
+    let nextVideo: VideoItem | null = null;
+    if (room.queue.length > 0) {
+      if (room.isShuffle) {
+        const randomIndex = Math.floor(Math.random() * room.queue.length);
+        [nextVideo] = room.queue.splice(randomIndex, 1);
+      } else {
+        nextVideo = room.queue.shift() || null;
+      }
+    }
+
     room.currentVideo = nextVideo;
     room.playback = {
       isPlaying: !!nextVideo,

@@ -42,6 +42,7 @@ export interface RoomState {
   playback: PlaybackState;
   queue: VideoItem[];
   members: RoomMember[];
+  isShuffle: boolean;
 }
 
 export interface CreateRoomOptions {

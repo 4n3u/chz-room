@@ -171,7 +171,58 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       }
     );
 
-    // 5. Skip / Next Video - Host & Mod only
+    // 5. Reorder Queue (Drag & Drop) - Host & Mod only
+    socket.on(
+      'queue:reorder',
+      (
+        data: { roomId: string; fromIndex: number; toIndex: number; user: ChzzkUser },
+        callback?: (res: { success?: boolean; error?: string }) => void
+      ) => {
+        const { roomId, fromIndex, toIndex, user } = data;
+        if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          return callback?.({ error: '대기열 순서를 변경할 권한(어드민/매니저)이 없습니다.' });
+        }
+
+        const updatedRoom = roomManager.reorderQueue(roomId, fromIndex, toIndex);
+        if (!updatedRoom) {
+          return callback?.({ error: '방을 찾을 수 없습니다.' });
+        }
+
+        io.to(roomId).emit('queue:updated', {
+          currentVideo: updatedRoom.currentVideo,
+          queue: updatedRoom.queue,
+        });
+
+        callback?.({ success: true });
+      }
+    );
+
+    // 6. Play Mode (Sequential vs Random Shuffle) - Host & Mod only
+    socket.on(
+      'queue:mode',
+      (
+        data: { roomId: string; isShuffle: boolean; user: ChzzkUser },
+        callback?: (res: { success?: boolean; isShuffle?: boolean; error?: string }) => void
+      ) => {
+        const { roomId, isShuffle, user } = data;
+        if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          return callback?.({ error: '재생 모드를 변경할 권한(어드민/매니저)이 없습니다.' });
+        }
+
+        const updatedRoom = roomManager.setShuffleMode(roomId, isShuffle);
+        if (!updatedRoom) {
+          return callback?.({ error: '방을 찾을 수 없습니다.' });
+        }
+
+        io.to(roomId).emit('queue:mode_updated', {
+          isShuffle: updatedRoom.isShuffle,
+        });
+
+        callback?.({ success: true, isShuffle: updatedRoom.isShuffle });
+      }
+    );
+
+    // 7. Skip / Next Video - Host & Mod only
     socket.on(
       'queue:next',
       (

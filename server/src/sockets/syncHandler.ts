@@ -109,6 +109,11 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           title: metadata.title,
           thumbnailUrl: metadata.thumbnailUrl,
           addedBy: user,
+          authorName: metadata.authorName,
+          authorUrl: metadata.authorUrl,
+          uploadDate: metadata.uploadDate,
+          viewCount: metadata.viewCount,
+          viewCountFormatted: metadata.viewCountFormatted,
         };
 
         const currentRoomBefore = roomManager.getRoom(roomId);

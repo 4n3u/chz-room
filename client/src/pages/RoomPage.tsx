@@ -357,7 +357,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               }}
             >
               <History size={14} />
-              <span>히스토리 ({history.length})</span>
+              <span>히스토리</span>
             </button>
 
             {/* Members Tab Button */}
@@ -379,7 +379,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               }}
             >
               <Users size={14} />
-              <span>참가자 ({members.length})</span>
+              <span>참가자</span>
             </button>
 
             {/* Divider */}

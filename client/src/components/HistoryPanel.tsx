@@ -49,19 +49,51 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       {/* Header */}
       <div
         style={{
-          padding: '12px 16px',
+          padding: '14px 16px',
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundColor: 'var(--surface-dark-alt)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <History size={16} color="var(--brand-green)" />
-          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
             재생 히스토리
           </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {canManage && history.length > 0 && (
+            <button
+              onClick={onClearHistory}
+              title="히스토리 전체 비우기"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                padding: '3px 7px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'transparent',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--accent-red)';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 75, 75, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <Trash2 size={13} />
+              <span>비우기</span>
+            </button>
+          )}
+
           <span
             style={{
               fontSize: 12,
@@ -75,36 +107,6 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             {history.length}곡
           </span>
         </div>
-
-        {canManage && history.length > 0 && (
-          <button
-            onClick={onClearHistory}
-            title="히스토리 전체 비우기"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--text-muted)',
-              padding: '4px 8px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'transparent',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--accent-red)';
-              e.currentTarget.style.backgroundColor = 'rgba(255, 75, 75, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-muted)';
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <Trash2 size={13} />
-            <span>비우기</span>
-          </button>
-        )}
       </div>
 
       {/* History List */}

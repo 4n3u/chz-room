@@ -12,9 +12,7 @@ import {
   Sparkles,
   RefreshCw,
   Search,
-  Lock,
   ArrowRight,
-  ShieldCheck,
 } from 'lucide-react';
 
 interface LobbyPageProps {

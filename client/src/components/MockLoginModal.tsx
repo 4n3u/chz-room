@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { X, Sparkles, User, CheckCircle2 } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 
 interface MockLoginModalProps {
   isOpen: boolean;

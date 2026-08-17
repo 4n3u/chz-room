@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PlaybackState, UserRole, VideoItem } from '../types';
-import { Play, Film, AlertCircle } from 'lucide-react';
+import { Film } from 'lucide-react';
 
 declare global {
   interface Window {

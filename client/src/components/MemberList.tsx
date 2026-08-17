@@ -1,6 +1,6 @@
 import React from 'react';
 import { RoomMember, UserRole } from '../types';
-import { Users, Crown, Shield, User, ShieldCheck, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Users, Crown, Shield, User, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 interface MemberListProps {
   members: RoomMember[];

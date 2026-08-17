@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole, VideoItem } from '../types';
-import { Plus, SkipForward, Trash2, ListMusic, Play, User } from 'lucide-react';
+import { Plus, SkipForward, Trash2, ListMusic, Play } from 'lucide-react';
 
 interface QueuePanelProps {
   currentVideo: VideoItem | null;

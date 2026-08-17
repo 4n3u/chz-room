@@ -12,6 +12,10 @@ import {
   Users,
   AlertCircle,
   Sparkles,
+  Tv,
+  Eye,
+  Calendar,
+  User,
 } from 'lucide-react';
 
 interface RoomPageProps {
@@ -176,20 +180,21 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 {currentVideo.title}
               </h2>
 
-              {/* Sub Meta Line: Channel • Views • Upload Date */}
+              {/* Sub Meta Line: Channel • Views • Upload Date • Added By */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: 8,
+                  gap: 12,
                   fontSize: 13,
                   color: 'var(--text-secondary)',
                 }}
               >
-                {/* Channel Name */}
+                {/* Channel Name with Channel Icon */}
                 {currentVideo.authorName && (
-                  <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Tv size={14} color="var(--brand-green)" />
                     {currentVideo.authorUrl ? (
                       <a
                         href={currentVideo.authorUrl}
@@ -210,38 +215,41 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                         {currentVideo.authorName}
                       </span>
                     )}
-                  </>
+                  </div>
                 )}
 
-                {/* Dot Divider & View Count without '조회수' text */}
+                {/* Dot Divider & View Count with Eye Icon */}
                 {(currentVideo.viewCount || currentVideo.viewCountFormatted) && (
                   <>
                     <span style={{ color: 'var(--text-dim)' }}>•</span>
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {formatViewCount(currentVideo.viewCount, currentVideo.viewCountFormatted)}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)' }}>
+                      <Eye size={14} color="var(--text-dim)" />
+                      <span>{formatViewCount(currentVideo.viewCount, currentVideo.viewCountFormatted)}</span>
+                    </div>
                   </>
                 )}
 
-                {/* Dot Divider & Upload Date */}
+                {/* Dot Divider & Upload Date with Calendar Icon */}
                 {currentVideo.uploadDate && (
                   <>
                     <span style={{ color: 'var(--text-dim)' }}>•</span>
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {formatUploadDate(currentVideo.uploadDate)}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)' }}>
+                      <Calendar size={14} color="var(--text-dim)" />
+                      <span>{formatUploadDate(currentVideo.uploadDate)}</span>
+                    </div>
                   </>
                 )}
 
-                {/* Dot Divider & Added by Nickname */}
+                {/* Dot Divider & Added by Nickname with User Icon */}
                 {currentVideo.addedBy?.channelName && (
                   <>
                     <span style={{ color: 'var(--text-dim)' }}>•</span>
-                    <span style={{ color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)' }}>
+                      <User size={13} color="var(--text-dim)" />
                       <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
                         {currentVideo.addedBy.channelName}
                       </span>
-                    </span>
+                    </div>
                   </>
                 )}
               </div>

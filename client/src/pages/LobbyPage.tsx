@@ -79,7 +79,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
             fontWeight: 900,
             letterSpacing: '-1px',
             marginBottom: 12,
-            color: '#ffffff',
+            color: 'var(--text-primary)',
           }}
         >
           chz-room

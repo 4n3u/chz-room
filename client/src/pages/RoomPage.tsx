@@ -242,7 +242,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId, onLeaveRoom }) => {
                 borderRadius: 'var(--radius-sm)',
                 fontSize: 13,
                 fontWeight: 700,
-                color: activeTab === 'queue' ? '#000000' : 'var(--text-muted)',
+                color: activeTab === 'queue' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                 backgroundColor: activeTab === 'queue' ? 'var(--brand-green)' : 'transparent',
               }}
             >
@@ -262,7 +262,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId, onLeaveRoom }) => {
                 borderRadius: 'var(--radius-sm)',
                 fontSize: 13,
                 fontWeight: 700,
-                color: activeTab === 'members' ? '#000000' : 'var(--text-muted)',
+                color: activeTab === 'members' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                 backgroundColor: activeTab === 'members' ? 'var(--brand-green)' : 'transparent',
               }}
             >

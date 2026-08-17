@@ -68,8 +68,8 @@ export const MemberList: React.FC<MemberListProps> = ({
       <div
         style={{
           padding: '10px 16px',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          borderBottom: '1px solid var(--surface-dark-subtle)',
+          backgroundColor: 'var(--surface-dark-subtle)',
+          borderBottom: '1px solid var(--border-subtle)',
           fontSize: 12,
           color: 'var(--text-muted)',
           display: 'flex',

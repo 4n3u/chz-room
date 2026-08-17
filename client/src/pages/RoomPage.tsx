@@ -178,7 +178,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 padding: '2px 2px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8,
               }}
             >
               {/* Title & External YouTube Link */}

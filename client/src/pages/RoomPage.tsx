@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { YouTubePlayer } from '../components/YouTubePlayer';
+import { SoundCloudPlayer } from '../components/SoundCloudPlayer';
 import { QueuePanel } from '../components/QueuePanel';
 import { HistoryPanel } from '../components/HistoryPanel';
 import { MemberList } from '../components/MemberList';
@@ -29,23 +30,23 @@ interface RoomPageProps {
 
 function formatUploadDate(dateStr?: string): string {
   if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}.`;
-  } catch {
-    return dateStr;
-  }
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return `${d.getFullYear()}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getDate().toString().padStart(2, '0')}`;
 }
 
-function formatViewCount(viewCount?: number, viewCountFormatted?: string): string {
-  if (viewCountFormatted) {
-    return viewCountFormatted.replace(/^조회수\s*/, '');
+function formatViewCount(num?: number, formatted?: string): string {
+  if (formatted) return formatted;
+  if (!num) return '';
+  if (num >= 100000000) {
+    const val = (num / 100000000).toFixed(1).replace(/\.0$/, '');
+    return `${val}억회`;
   }
-  if (!viewCount) return '';
-  if (viewCount >= 100000000) return `${(viewCount / 100000000).toFixed(1)}억회`;
-  if (viewCount >= 10000) return `${Math.floor(viewCount / 10000)}만회`;
-  return `${viewCount.toLocaleString()}회`;
+  if (num >= 10000) {
+    const val = (num / 10000).toFixed(1).replace(/\.0$/, '');
+    return `${val}만회`;
+  }
+  return `${num.toLocaleString()}회`;
 }
 
 export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
@@ -84,91 +85,127 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
 
   const handleCopyLink = () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   return (
-    <div style={{ maxWidth: 1600, width: '100%', margin: '0 auto', padding: '16px 24px' }}>
-      {/* Error Toast */}
+    <div
+      style={{
+        maxWidth: 1440,
+        margin: '0 auto',
+        padding: '24px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
+        minHeight: 'calc(100vh - 120px)',
+      }}
+    >
+      {/* Toast Error Notification */}
       {error && (
         <div
           style={{
+            position: 'fixed',
+            top: 70,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(255, 75, 75, 0.95)',
+            backdropFilter: 'blur(8px)',
+            color: '#fff',
+            padding: '10px 20px',
+            borderRadius: 'var(--radius-full)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 16px',
-            backgroundColor: 'rgba(255, 75, 75, 0.15)',
-            border: '1px solid rgba(255, 75, 75, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--accent-red)',
+            gap: 10,
+            boxShadow: '0 8px 24px rgba(255, 75, 75, 0.4)',
+            zIndex: 1000,
             fontSize: 13,
-            marginBottom: 16,
+            fontWeight: 600,
+            animation: 'fadeIn 0.2s ease',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertCircle size={16} />
-            <span>{error}</span>
-          </div>
-          <button onClick={clearError} style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-            닫기
+          <AlertCircle size={16} />
+          <span>{error}</span>
+          <button
+            onClick={clearError}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              marginLeft: 8,
+              fontSize: 14,
+              opacity: 0.8,
+            }}
+          >
+            ✕
           </button>
         </div>
       )}
 
-      {/* Non-login Notice Banner */}
+      {/* Guest Banner */}
       {!user && (
         <div
           style={{
+            padding: '12px 18px',
+            backgroundColor: 'rgba(0, 255, 163, 0.08)',
+            border: '1px solid rgba(0, 255, 163, 0.25)',
+            borderRadius: 'var(--radius-md)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '12px 18px',
-            backgroundColor: 'var(--surface-dark)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: 16,
+            gap: 16,
             flexWrap: 'wrap',
-            gap: 12,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sparkles size={16} color="var(--brand-green)" />
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              로그인하면 유튜브 영상을 대기열에 등록할 수 있습니다.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Sparkles size={18} color="var(--brand-green)" />
+            <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+              현재 <strong>게스트(시청 전용)</strong> 모드로 시청 중입니다. 대기열에 곡을 추가하거나 역할을 받으려면 로그인해주세요.
             </span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              className="btn-secondary"
-              onClick={() => setShowMockLogin(true)}
-              style={{ fontSize: 12, padding: '4px 10px' }}
-            >
-              테스트 로그인
-            </button>
-            <button
               className="btn-primary"
               onClick={loginWithChzzk}
-              style={{ fontSize: 12, padding: '4px 12px' }}
+              style={{ padding: '6px 14px', fontSize: 12 }}
             >
               치지직 로그인
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => setShowMockLogin(true)}
+              style={{ padding: '6px 14px', fontSize: 12 }}
+            >
+              테스트 로그인
             </button>
           </div>
         </div>
       )}
 
-      {/* Main Grid: YouTube Player (Left/Center) + Right Sidebar (Queue, History & Members) */}
+      {/* Main Grid: YouTube / SoundCloud Player (Left/Center) + Right Sidebar (Queue, History & Members) */}
       <div className="room-grid-layout">
-        {/* Left: YouTube Sync Player & Minimal Video Info */}
+        {/* Left: Sync Player & Minimal Video Info */}
         <div>
-          <YouTubePlayer
-            currentVideo={currentVideo}
-            playback={playback}
-            role={role}
-            onVideoControl={sendVideoControl}
-            onVideoEnded={skipNext}
-          />
+          {currentVideo?.source === 'soundcloud' ? (
+            <SoundCloudPlayer
+              currentVideo={currentVideo}
+              playback={playback}
+              role={role}
+              onVideoControl={sendVideoControl}
+              onVideoEnded={skipNext}
+            />
+          ) : (
+            <YouTubePlayer
+              currentVideo={currentVideo}
+              playback={playback}
+              role={role}
+              onVideoControl={sendVideoControl}
+              onVideoEnded={skipNext}
+            />
+          )}
 
           {/* Current Video Info (Clean YouTube-style typography without card box) */}
           {currentVideo && (
@@ -180,7 +217,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 flexDirection: 'column',
               }}
             >
-              {/* Title & External YouTube Link */}
+              {/* Title & External Link */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <h2
                   style={{
@@ -195,10 +232,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 </h2>
 
                 <a
-                  href={`https://www.youtube.com/watch?v=${currentVideo.videoId}`}
+                  href={
+                    currentVideo.source === 'soundcloud'
+                      ? currentVideo.soundcloudUrl || currentVideo.authorUrl || currentVideo.videoId
+                      : `https://www.youtube.com/watch?v=${currentVideo.videoId}`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="유튜브에서 새 탭으로 보기"
+                  title={currentVideo.source === 'soundcloud' ? '사운드클라우드에서 새 탭으로 열기' : '유튜브에서 새 탭으로 보기'}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

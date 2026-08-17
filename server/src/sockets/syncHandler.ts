@@ -2,6 +2,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { RoomManager } from '../rooms/RoomManager';
 import { ChzzkUser } from '../auth/types';
 import { fetchYouTubeMetadata, parseYouTubeId, isShortsUrl } from '../utils/youtube';
+import { fetchSoundCloudMetadata, isSoundCloudUrl, parseSoundCloudUrl } from '../utils/soundcloud';
 import { UserRole, VideoItem, QueueLimitMode, RoomSettings } from '../rooms/types';
 import crypto from 'crypto';
 
@@ -97,27 +98,53 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           return callback?.({ error: '유효하지 않은 요청입니다.' });
         }
 
-        const videoId = parseYouTubeId(url);
-        if (!videoId) {
-          return callback?.({ error: '올바른 YouTube 영상 주소를 입력해주세요.' });
-        }
+        let videoItem: VideoItem | null = null;
 
-        const metadata = await fetchYouTubeMetadata(videoId);
-        const isShorts = isShortsUrl(url) || !!metadata.isShorts;
-        const videoItem: VideoItem = {
-          id: `item-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`,
-          videoId,
-          title: metadata.title,
-          thumbnailUrl: metadata.thumbnailUrl,
-          duration: metadata.duration,
-          addedBy: user,
-          authorName: metadata.authorName,
-          authorUrl: metadata.authorUrl,
-          uploadDate: metadata.uploadDate,
-          viewCount: metadata.viewCount,
-          viewCountFormatted: metadata.viewCountFormatted,
-          isShorts,
-        };
+        // Check if SoundCloud URL
+        if (isSoundCloudUrl(url)) {
+          const scUrl = parseSoundCloudUrl(url);
+          if (!scUrl) {
+            return callback?.({ error: '올바른 SoundCloud 주소를 입력해주세요.' });
+          }
+          const scMeta = await fetchSoundCloudMetadata(scUrl);
+          videoItem = {
+            id: `item-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`,
+            videoId: scMeta.soundcloudUrl,
+            source: 'soundcloud',
+            soundcloudUrl: scMeta.soundcloudUrl,
+            embedUrl: scMeta.embedUrl,
+            title: scMeta.title,
+            thumbnailUrl: scMeta.thumbnailUrl,
+            duration: scMeta.duration,
+            addedBy: user,
+            authorName: scMeta.authorName,
+            authorUrl: scMeta.authorUrl,
+          };
+        } else {
+          // Check YouTube
+          const videoId = parseYouTubeId(url);
+          if (!videoId) {
+            return callback?.({ error: '올바른 YouTube 또는 SoundCloud 주소를 입력해주세요.' });
+          }
+
+          const metadata = await fetchYouTubeMetadata(videoId);
+          const isShorts = isShortsUrl(url) || !!metadata.isShorts;
+          videoItem = {
+            id: `item-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`,
+            videoId,
+            source: 'youtube',
+            title: metadata.title,
+            thumbnailUrl: metadata.thumbnailUrl,
+            duration: metadata.duration,
+            addedBy: user,
+            authorName: metadata.authorName,
+            authorUrl: metadata.authorUrl,
+            uploadDate: metadata.uploadDate,
+            viewCount: metadata.viewCount,
+            viewCountFormatted: metadata.viewCountFormatted,
+            isShorts,
+          };
+        }
 
         const currentRoomBefore = roomManager.getRoom(roomId);
         const wasEmpty = !currentRoomBefore?.currentVideo;

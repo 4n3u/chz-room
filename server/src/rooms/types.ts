@@ -25,12 +25,15 @@ export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
 
 export interface VideoItem {
   id: string; // unique item id in playlist
-  videoId: string; // YouTube 11-char ID
+  videoId: string; // YouTube ID or SoundCloud ID/URL
   title: string;
   thumbnailUrl: string;
   duration?: number;
   addedBy: ChzzkUser;
-  authorName?: string; // 게시 채널 프로필 이름
+  source?: 'youtube' | 'soundcloud'; // Media provider
+  soundcloudUrl?: string; // Direct SoundCloud track URL
+  embedUrl?: string; // Direct SoundCloud iframe embed URL
+  authorName?: string; // 게시 채널 프로필 이름 / 아티스트명
   authorUrl?: string; // 채널 링크
   uploadDate?: string; // 업로드 날짜 (ISO string or YYYY-MM-DD)
   viewCount?: number; // 조회수 (숫자)

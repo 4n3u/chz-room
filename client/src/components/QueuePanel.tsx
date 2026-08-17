@@ -164,7 +164,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
         <form onSubmit={handleAddSubmit} style={{ display: 'flex', gap: 8 }}>
           <input
             type="text"
-            placeholder="유튜브 URL 붙여넣기"
+            placeholder="YouTube 또는 SoundCloud 링크..."
             value={urlInput}
             onChange={(e) => {
               setUrlInput(e.target.value);
@@ -377,10 +377,10 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                 fontSize: 13,
               }}
             >
-              대기 중인 다음 영상이 없습니다.
+              대기 중인 다음 곡이 없습니다.
               <br />
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                상단에 유튜브 링크를 추가해보세요!
+                상단에 YouTube 영상이나 SoundCloud 링크를 추가해보세요!
               </span>
             </div>
           ) : (

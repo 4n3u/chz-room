@@ -1,3 +1,6 @@
+<img width="1590" height="811" alt="image" src="https://github.com/user-attachments/assets/ca4d8371-af99-45ed-8519-36799c589229" />
+
+
 # chz-room (치즈룸)
 
 네이버 치지직(CHZZK) 연동 실시간 유튜브 동시시청 서비스

@@ -166,5 +166,32 @@ describe('RoomManager Tests', () => {
     expect(['vid-2', 'vid-3']).toContain(nextRes?.currentVideo?.videoId);
     expect(nextRes?.room.queue.length).toBe(1);
   });
+
+  it('should preserve host ownership when host leaves and rejoins', () => {
+    const room = roomManager.createRoom({
+      title: '테스트방',
+      hostUser,
+    });
+
+    roomManager.joinRoom(room.id, 'socket-host-1', hostUser);
+    roomManager.joinRoom(room.id, 'socket-viewer-1', viewerUser);
+
+    // Host leaves
+    const leaveRes = roomManager.leaveRoom('socket-host-1');
+    expect(leaveRes?.wasHost).toBe(true);
+
+    // Room still belongs to original host
+    const roomAfterLeave = roomManager.getRoom(room.id);
+    expect(roomAfterLeave?.hostUserId).toBe('host-123');
+
+    // Viewer is still a viewer, not promoted automatically
+    expect(roomManager.getUserRole(room.id, 'viewer-456')).toBe('viewer');
+
+    // Host rejoins with a new socket
+    const rejoinRes = roomManager.joinRoom(room.id, 'socket-host-2', hostUser);
+    expect(rejoinRes?.role).toBe('host');
+    expect(roomManager.getUserRole(room.id, 'host-123')).toBe('host');
+  });
 });
+
 

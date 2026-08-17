@@ -127,12 +127,13 @@ export class RoomManager {
   }
 
   /**
-   * Remove a member by socket ID and handle host migration if needed
+  /**
+   * Remove a member by socket ID. The room's hostUserId is preserved so that
+   * the original admin retains host ownership upon rejoining.
    */
   public leaveRoom(socketId: string): {
     roomId: string;
     wasHost: boolean;
-    newHostUserId?: string;
     room?: RoomState;
   } | null {
     const roomId = this.socketToRoom.get(socketId);
@@ -148,30 +149,12 @@ export class RoomManager {
     const wasHost = leavingMember.role === 'host' || leavingMember.user.channelId === room.hostUserId;
     room.members = room.members.filter((m) => m.socketId !== socketId);
 
-    let newHostUserId: string | undefined = undefined;
-
-    // If the host left and there are still members
-    if (wasHost && room.members.length > 0) {
-      // Find first moderator or first remaining member
-      const nextHostMember =
-        room.members.find((m) => room.moderatorUserIds.includes(m.user.channelId)) ||
-        room.members[0];
-
-      if (nextHostMember) {
-        room.hostUserId = nextHostMember.user.channelId;
-        nextHostMember.role = 'host';
-        newHostUserId = nextHostMember.user.channelId;
-        // Remove from mod list if was mod
-        room.moderatorUserIds = room.moderatorUserIds.filter((id) => id !== newHostUserId);
-      }
-    }
-
     // If room is empty, delete room
     if (room.members.length === 0) {
       this.rooms.delete(roomId);
     }
 
-    return { roomId, wasHost, newHostUserId, room };
+    return { roomId, wasHost, room };
   }
 
   /**

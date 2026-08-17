@@ -318,11 +318,6 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
     const handleDisconnect = () => {
       const leaveResult = roomManager.leaveRoom(socket.id);
       if (leaveResult && leaveResult.room) {
-        if (leaveResult.wasHost && leaveResult.newHostUserId) {
-          io.to(leaveResult.roomId).emit('host:migrated', {
-            newHostUserId: leaveResult.newHostUserId,
-          });
-        }
         io.to(leaveResult.roomId).emit('members:updated', leaveResult.room.members);
       }
     };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { UserRole, VideoItem } from '../types';
 import {
   Plus,
@@ -40,9 +40,14 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
   const [loading, setLoading] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
 
-  // Smooth Drag and Drop State
+  // Smooth Drag and Drop State with Ref for 100% reliable drop tracking
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragInfoRef = useRef<{ from: number | null; to: number | null; reordered: boolean }>({
+    from: null,
+    to: null,
+    reordered: false,
+  });
 
   const canManage = role === 'host' || role === 'mod';
 
@@ -62,9 +67,19 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
     setLoading(false);
   };
 
+  // Reorder executor that is guaranteed to run exactly once
+  const executeReorder = (from: number | null, to: number | null) => {
+    if (dragInfoRef.current.reordered) return;
+    if (from !== null && to !== null && from !== to && from >= 0 && to >= 0 && from < queue.length && to < queue.length) {
+      dragInfoRef.current.reordered = true;
+      onReorderQueue(from, to);
+    }
+  };
+
   // Smooth Drag Handlers
   const handleDragStart = (e: React.DragEvent, index: number) => {
     if (!canManage) return;
+    dragInfoRef.current = { from: index, to: index, reordered: false };
     setDraggedIndex(index);
     setDragOverIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -75,22 +90,31 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
     if (!canManage || draggedIndex === null) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    dragInfoRef.current.to = index;
     if (dragOverIndex !== index) {
       setDragOverIndex(index);
     }
   };
 
-  const handleDragEnd = () => {
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    if (!canManage) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    let fromIndex = dragInfoRef.current.from ?? draggedIndex;
+    if (fromIndex === null) {
+      const data = e.dataTransfer.getData('text/plain');
+      if (data !== '') fromIndex = parseInt(data, 10);
+    }
+
+    executeReorder(fromIndex, targetIndex);
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
 
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
-    if (!canManage || draggedIndex === null) return;
-    e.preventDefault();
-    if (draggedIndex !== targetIndex) {
-      onReorderQueue(draggedIndex, targetIndex);
-    }
+  const handleDragEnd = () => {
+    executeReorder(dragInfoRef.current.from, dragInfoRef.current.to);
+    dragInfoRef.current = { from: null, to: null, reordered: false };
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -346,7 +370,6 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
               {queue.map((item, index) => {
                 const isDragging = draggedIndex === index;
-                const isOver = dragOverIndex === index;
 
                 // Calculate smooth translateY displacement during drag
                 let translateY = 0;
@@ -378,15 +401,11 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                       gap: 8,
                       backgroundColor: isDragging
                         ? 'var(--surface-dark-subtle)'
-                        : isOver
-                        ? 'var(--surface-dark-hover)'
                         : 'var(--surface-dark-alt)',
                       borderRadius: 'var(--radius-md)',
                       padding: '8px 10px',
                       border: isDragging
                         ? '1px dashed rgba(0, 255, 163, 0.5)'
-                        : isOver
-                        ? '1px solid var(--brand-green)'
                         : '1px solid var(--border-color)',
                       opacity: isDragging ? 0.35 : 1,
                       cursor: canManage ? 'grab' : 'default',
@@ -408,6 +427,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                           alignItems: 'center',
                           padding: '2px 0',
                           flexShrink: 0,
+                          pointerEvents: 'none',
                         }}
                         title="드래그하여 순서 변경"
                       >

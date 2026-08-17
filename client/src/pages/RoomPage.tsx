@@ -12,11 +12,6 @@ import {
   Users,
   AlertCircle,
   Sparkles,
-  Eye,
-  Calendar,
-  Tv,
-  ExternalLink,
-  User,
 } from 'lucide-react';
 
 interface RoomPageProps {
@@ -36,11 +31,13 @@ function formatUploadDate(dateStr?: string): string {
 }
 
 function formatViewCount(viewCount?: number, viewCountFormatted?: string): string {
-  if (viewCountFormatted) return viewCountFormatted;
+  if (viewCountFormatted) {
+    return viewCountFormatted.replace(/^조회수\s*/, '');
+  }
   if (!viewCount) return '';
-  if (viewCount >= 100000000) return `조회수 ${(viewCount / 100000000).toFixed(1)}억회`;
-  if (viewCount >= 10000) return `조회수 ${Math.floor(viewCount / 10000)}만회`;
-  return `조회수 ${viewCount.toLocaleString()}회`;
+  if (viewCount >= 100000000) return `${(viewCount / 100000000).toFixed(1)}억회`;
+  if (viewCount >= 10000) return `${Math.floor(viewCount / 10000)}만회`;
+  return `${viewCount.toLocaleString()}회`;
 }
 
 export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
@@ -148,7 +145,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
           alignItems: 'start',
         }}
       >
-        {/* Left: YouTube Sync Player & Metadata Card */}
+        {/* Left: YouTube Sync Player & Minimal Video Info */}
         <div>
           <YouTubePlayer
             currentVideo={currentVideo}
@@ -158,122 +155,79 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
             onVideoEnded={skipNext}
           />
 
-          {/* Video Metadata Card */}
+          {/* Minimal Clean Video Info (No card box, no icons, no '조회수' text) */}
           {currentVideo && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: '16px 20px',
-                backgroundColor: 'var(--surface-dark)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-card)',
-              }}
-            >
+            <div style={{ marginTop: 12, padding: '0 2px' }}>
               {/* Title */}
               <h2
                 style={{
                   fontSize: 17,
-                  fontWeight: 800,
+                  fontWeight: 700,
                   color: 'var(--text-primary)',
-                  marginBottom: 10,
+                  marginBottom: 6,
                   lineHeight: 1.4,
+                  wordBreak: 'break-word',
                 }}
               >
                 {currentVideo.title}
               </h2>
 
-              {/* Channel & Stats Meta Row */}
+              {/* Sub Meta Line: Channel • Views • Upload Date */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: 12,
-                  paddingTop: 10,
-                  borderTop: '1px solid var(--border-subtle)',
+                  gap: 8,
+                  fontSize: 13,
+                  color: 'var(--text-secondary)',
                 }}
               >
-                {/* Left Meta: Channel & Views & Upload Date */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
-                  {/* Channel Name */}
-                  {currentVideo.authorName && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div
+                {/* Channel Name */}
+                {currentVideo.authorName && (
+                  <>
+                    {currentVideo.authorUrl ? (
+                      <a
+                        href={currentVideo.authorUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          backgroundColor: 'var(--surface-dark-alt)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          transition: 'color 0.15s ease',
                         }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--brand-green)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
                       >
-                        <Tv size={12} color="var(--brand-green)" />
-                      </div>
-                      {currentVideo.authorUrl ? (
-                        <a
-                          href={currentVideo.authorUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: 'var(--text-primary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--brand-green)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-                        >
-                          <span>{currentVideo.authorName}</span>
-                          <ExternalLink size={12} color="var(--text-dim)" />
-                        </a>
-                      ) : (
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {currentVideo.authorName}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                        {currentVideo.authorName}
+                      </a>
+                    ) : (
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {currentVideo.authorName}
+                      </span>
+                    )}
+                  </>
+                )}
 
-                  {/* View Count */}
-                  {(currentVideo.viewCount || currentVideo.viewCountFormatted) && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)', fontSize: 12 }}>
-                      <Eye size={13} color="var(--text-dim)" />
-                      <span>{formatViewCount(currentVideo.viewCount, currentVideo.viewCountFormatted)}</span>
-                    </div>
-                  )}
+                {/* Dot Divider & View Count without '조회수' text */}
+                {(currentVideo.viewCount || currentVideo.viewCountFormatted) && (
+                  <>
+                    <span style={{ color: 'var(--text-dim)' }}>•</span>
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {formatViewCount(currentVideo.viewCount, currentVideo.viewCountFormatted)}
+                    </span>
+                  </>
+                )}
 
-                  {/* Upload Date */}
-                  {currentVideo.uploadDate && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)', fontSize: 12 }}>
-                      <Calendar size={13} color="var(--text-dim)" />
-                      <span>{formatUploadDate(currentVideo.uploadDate)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Meta: Added by User */}
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    backgroundColor: 'var(--surface-dark-alt)',
-                    padding: '3px 10px',
-                    borderRadius: 'var(--radius-full)',
-                    border: '1px solid var(--border-color)',
-                    fontSize: 11,
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  <User size={12} color="var(--brand-green)" />
-                  <span>등록: {currentVideo.addedBy?.channelName || '치지직 유저'}</span>
-                </div>
+                {/* Dot Divider & Upload Date */}
+                {currentVideo.uploadDate && (
+                  <>
+                    <span style={{ color: 'var(--text-dim)' }}>•</span>
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {formatUploadDate(currentVideo.uploadDate)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           )}

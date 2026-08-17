@@ -145,14 +145,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
       )}
 
       {/* Main Grid: YouTube Player (Left/Center) + Right Sidebar (Queue & Members) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 380px',
-          gap: 16,
-          alignItems: 'start',
-        }}
-      >
+      <div className="room-grid-layout">
         {/* Left: YouTube Sync Player & Minimal Video Info */}
         <div>
           <YouTubePlayer

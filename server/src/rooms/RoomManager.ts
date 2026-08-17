@@ -14,6 +14,8 @@ export class RoomManager {
   private rooms: Map<string, RoomState> = new Map();
   // Map socketId -> roomId
   private socketToRoom: Map<string, string> = new Map();
+  // Empty room cleanup timers (5-min grace period)
+  private cleanupTimers: Map<string, NodeJS.Timeout> = new Map();
 
   /**
    * Generates a unique room ID
@@ -99,6 +101,12 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room) return null;
 
+    // Cancel empty room cleanup timer if someone joins
+    if (this.cleanupTimers.has(roomId)) {
+      clearTimeout(this.cleanupTimers.get(roomId)!);
+      this.cleanupTimers.delete(roomId);
+    }
+
     // Check existing socket and remove if re-joining
     this.leaveRoom(socketId);
 
@@ -127,7 +135,6 @@ export class RoomManager {
   }
 
   /**
-  /**
    * Remove a member by socket ID. The room's hostUserId is preserved so that
    * the original admin retains host ownership upon rejoining.
    */
@@ -149,9 +156,19 @@ export class RoomManager {
     const wasHost = leavingMember.role === 'host' || leavingMember.user.channelId === room.hostUserId;
     room.members = room.members.filter((m) => m.socketId !== socketId);
 
-    // If room is empty, delete room
+    // If room is empty, schedule cleanup timer with a 5-minute grace period
     if (room.members.length === 0) {
-      this.rooms.delete(roomId);
+      if (this.cleanupTimers.has(roomId)) {
+        clearTimeout(this.cleanupTimers.get(roomId)!);
+      }
+      const timer = setTimeout(() => {
+        const targetRoom = this.rooms.get(roomId);
+        if (targetRoom && targetRoom.members.length === 0) {
+          this.rooms.delete(roomId);
+        }
+        this.cleanupTimers.delete(roomId);
+      }, 5 * 60 * 1000); // 5 minutes grace period
+      this.cleanupTimers.set(roomId, timer);
     }
 
     return { roomId, wasHost, room };

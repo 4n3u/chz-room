@@ -69,10 +69,19 @@ export function parseYouTubeId(input: string): string | null {
   return null;
 }
 
+// In-memory cache for YouTube metadata (30-minute TTL)
+const metadataCache = new Map<string, { data: YouTubeVideoMetadata; timestamp: number }>();
+const METADATA_CACHE_TTL = 30 * 60 * 1000;
+
 /**
  * Fetches YouTube video metadata: title, channel name, thumbnail, upload date, and view count
  */
 export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVideoMetadata> {
+  const cached = metadataCache.get(videoId);
+  if (cached && Date.now() - cached.timestamp < METADATA_CACHE_TTL) {
+    return cached.data;
+  }
+
   const fallbackThumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   const fallbackTitle = `YouTube 영상 (${videoId})`;
 
@@ -136,7 +145,7 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVide
     // Ignore HTML scrape errors and use what we have
   }
 
-  return {
+  const result: YouTubeVideoMetadata = {
     title,
     thumbnailUrl,
     authorName,
@@ -145,4 +154,7 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVide
     viewCount,
     viewCountFormatted,
   };
+
+  metadataCache.set(videoId, { data: result, timestamp: Date.now() });
+  return result;
 }

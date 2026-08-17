@@ -311,3 +311,17 @@ input::placeholder {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* Responsive Grid for Room View */
+.room-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .room-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}

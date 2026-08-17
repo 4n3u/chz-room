@@ -49,7 +49,7 @@ export function App() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-black)' }}>
       <Navbar onGoHome={handleLeaveRoom} />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, width: '100%' }}>
         {currentRoomId ? (
           <RoomPage roomId={currentRoomId} onLeaveRoom={handleLeaveRoom} />
         ) : (

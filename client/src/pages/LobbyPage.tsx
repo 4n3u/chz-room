@@ -62,7 +62,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
   return (
     <div
       style={{
-        flex: 1,
+        minHeight: 'calc(100vh - 88px)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

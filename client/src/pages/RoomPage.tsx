@@ -76,7 +76,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
   };
 
   return (
-    <div style={{ maxWidth: 1600, margin: '0 auto', padding: '16px 24px' }}>
+    <div style={{ maxWidth: 1600, width: '100%', margin: '0 auto', padding: '16px 24px' }}>
       {/* Error Toast */}
       {error && (
         <div

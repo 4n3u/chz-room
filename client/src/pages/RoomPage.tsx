@@ -12,7 +12,6 @@ import {
   Users,
   AlertCircle,
   Sparkles,
-  Tv,
   Eye,
   Calendar,
   User,
@@ -191,10 +190,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                   color: 'var(--text-secondary)',
                 }}
               >
-                {/* Channel Name with Channel Icon */}
+                {/* Channel Name */}
                 {currentVideo.authorName && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <Tv size={14} color="var(--brand-green)" />
+                  <>
                     {currentVideo.authorUrl ? (
                       <a
                         href={currentVideo.authorUrl}
@@ -215,7 +213,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                         {currentVideo.authorName}
                       </span>
                     )}
-                  </div>
+                  </>
                 )}
 
                 {/* Dot Divider & View Count with Eye Icon */}

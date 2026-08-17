@@ -192,6 +192,38 @@ describe('RoomManager Tests', () => {
     expect(rejoinRes?.role).toBe('host');
     expect(roomManager.getUserRole(room.id, 'host-123')).toBe('host');
   });
+
+  it('should track played videos in history, support re-adding, and clearing', () => {
+    const room = roomManager.createRoom({
+      title: '테스트방',
+      hostUser,
+    });
+
+    const v1 = { id: 'item-1', videoId: 'vid-1', title: '1', thumbnailUrl: '', addedBy: hostUser };
+    const v2 = { id: 'item-2', videoId: 'vid-2', title: '2', thumbnailUrl: '', addedBy: hostUser };
+
+    roomManager.addToQueue(room.id, v1);
+    roomManager.addToQueue(room.id, v2);
+
+    expect(roomManager.getRoom(room.id)?.history.length).toBe(0);
+
+    // Skip to next -> v1 goes to history
+    roomManager.nextVideo(room.id);
+    const roomAfterNext = roomManager.getRoom(room.id);
+    expect(roomAfterNext?.history.length).toBe(1);
+    expect(roomAfterNext?.history[0].videoId).toBe('vid-1');
+    expect(roomAfterNext?.history[0].playedAt).toBeDefined();
+
+    // Re-add v1 from history to queue
+    const reAddRes = roomManager.reAddFromHistory(room.id, 'item-1');
+    expect(reAddRes).not.toBeNull();
+    expect(roomManager.getRoom(room.id)?.queue.length).toBe(1);
+    expect(roomManager.getRoom(room.id)?.queue[0].videoId).toBe('vid-1');
+
+    // Clear history
+    roomManager.clearHistory(room.id);
+    expect(roomManager.getRoom(room.id)?.history.length).toBe(0);
+  });
 });
 
 

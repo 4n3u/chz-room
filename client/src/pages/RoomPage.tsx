@@ -3,12 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { YouTubePlayer } from '../components/YouTubePlayer';
 import { QueuePanel } from '../components/QueuePanel';
+import { HistoryPanel } from '../components/HistoryPanel';
 import { MemberList } from '../components/MemberList';
 import { MockLoginModal } from '../components/MockLoginModal';
 import {
   Copy,
   Check,
   ListMusic,
+  History,
   Users,
   AlertCircle,
   Sparkles,
@@ -46,7 +48,7 @@ function formatViewCount(viewCount?: number, viewCountFormatted?: string): strin
 
 export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
   const { user, loginWithChzzk } = useAuth();
-  const [activeTab, setActiveTab] = useState<'queue' | 'members'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'history' | 'members'>('queue');
   const [copied, setCopied] = useState(false);
   const [showMockLogin, setShowMockLogin] = useState(false);
 
@@ -55,6 +57,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     members,
     currentVideo,
     queue,
+    history,
     isShuffle,
     playback,
     error,
@@ -66,11 +69,15 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     toggleShuffle,
     playNow,
     skipNext,
+    reAddFromHistory,
+    playHistoryNow,
+    clearHistory,
     updateRole,
   } = useSocket({ roomId, user });
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -144,7 +151,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
         </div>
       )}
 
-      {/* Main Grid: YouTube Player (Left/Center) + Right Sidebar (Queue & Members) */}
+      {/* Main Grid: YouTube Player (Left/Center) + Right Sidebar (Queue, History & Members) */}
       <div className="room-grid-layout">
         {/* Left: YouTube Sync Player & Minimal Video Info */}
         <div>
@@ -156,27 +163,29 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
             onVideoEnded={skipNext}
           />
 
-          {/* Minimal Clean Video Info (No card box, no icons, no '조회수' text) */}
+          {/* Current Video Info Banner (Clean typography & YouTube tab icon) */}
           {currentVideo && (
-            <div style={{ marginTop: 12, padding: '0 2px' }}>
-              {/* Title & Open in YouTube Link */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                  marginBottom: 6,
-                }}
-              >
+            <div
+              style={{
+                marginTop: 12,
+                padding: '12px 16px',
+                backgroundColor: 'var(--surface-dark)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}
+            >
+              {/* Title & External YouTube Link */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <h2
                   style={{
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: 700,
                     color: 'var(--text-primary)',
+                    margin: 0,
                     lineHeight: 1.4,
-                    wordBreak: 'break-word',
-                    flex: 1,
                   }}
                 >
                   {currentVideo.title}
@@ -186,44 +195,47 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                   href={`https://www.youtube.com/watch?v=${currentVideo.videoId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="유튜브에서 새 탭으로 열기"
+                  title="유튜브에서 새 탭으로 보기"
                   style={{
-                    display: 'inline-flex',
+                    display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '4px',
+                    width: 32,
+                    height: 32,
                     borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--surface-dark-alt)',
+                    border: '1px solid var(--border-color)',
                     color: 'var(--text-muted)',
-                    backgroundColor: 'transparent',
-                    transition: 'all 0.15s ease',
                     flexShrink: 0,
-                    marginTop: 2,
+                    transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = 'var(--brand-green)';
-                    e.currentTarget.style.backgroundColor = 'var(--surface-dark-hover)';
+                    e.currentTarget.style.borderColor = 'var(--brand-green)';
+                    e.currentTarget.style.backgroundColor = 'var(--brand-green-glow)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.color = 'var(--text-muted)';
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                    e.currentTarget.style.backgroundColor = 'var(--surface-dark-alt)';
                   }}
                 >
                   <ExternalLink size={16} />
                 </a>
               </div>
 
-              {/* Sub Meta Line: Channel • Views • Upload Date • Added By */}
+              {/* Channel name, views, date, and user */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 12,
-                  fontSize: 13,
+                  gap: 8,
+                  fontSize: 12,
                   color: 'var(--text-secondary)',
+                  flexWrap: 'wrap',
                 }}
               >
-                {/* Channel Name */}
+                {/* YouTube Channel Name (Text Only) */}
                 {currentVideo.authorName && (
                   <>
                     {currentVideo.authorUrl ? (
@@ -290,7 +302,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
 
         {/* Right: Sidebar Tabs + Copy Link Button */}
         <div style={{ height: 'calc(100vh - 130px)', minHeight: 480, display: 'flex', flexDirection: 'column' }}>
-          {/* Top Header Actions (Unified Toolbar with Tabs & Invite Link) */}
+          {/* Top Header Actions (Unified Toolbar with 3 Tabs & Invite Link) */}
           <div
             style={{
               display: 'flex',
@@ -312,17 +324,39 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 5,
                 borderRadius: 7,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: activeTab === 'queue' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                 backgroundColor: activeTab === 'queue' ? 'var(--brand-green)' : 'transparent',
                 transition: 'all 0.15s ease',
               }}
             >
-              <ListMusic size={15} />
+              <ListMusic size={14} />
               <span>대기열 ({queue.length})</span>
+            </button>
+
+            {/* History Tab Button */}
+            <button
+              onClick={() => setActiveTab('history')}
+              style={{
+                flex: 1,
+                height: 34,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                borderRadius: 7,
+                fontSize: 12,
+                fontWeight: 700,
+                color: activeTab === 'history' ? 'var(--text-on-brand)' : 'var(--text-muted)',
+                backgroundColor: activeTab === 'history' ? 'var(--brand-green)' : 'transparent',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <History size={14} />
+              <span>히스토리 ({history.length})</span>
             </button>
 
             {/* Members Tab Button */}
@@ -334,30 +368,30 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 5,
                 borderRadius: 7,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: activeTab === 'members' ? 'var(--text-on-brand)' : 'var(--text-muted)',
                 backgroundColor: activeTab === 'members' ? 'var(--brand-green)' : 'transparent',
                 transition: 'all 0.15s ease',
               }}
             >
-              <Users size={15} />
+              <Users size={14} />
               <span>참가자 ({members.length})</span>
             </button>
 
             {/* Divider */}
             <div style={{ width: 1, height: 18, backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
 
-            {/* Compact Invite Link Copy Button (Identical Inner Button Style) */}
+            {/* Compact Invite Link Copy Button */}
             <button
               onClick={handleCopyLink}
               title="초대 링크 복사"
               style={{
                 height: 34,
-                padding: '0 12px',
-                fontSize: 13,
+                padding: '0 10px',
+                fontSize: 12,
                 fontWeight: 700,
                 whiteSpace: 'nowrap',
                 backgroundColor: copied ? 'var(--brand-green-glow)' : 'transparent',
@@ -366,7 +400,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 4,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -378,7 +412,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               }}
             >
               {copied ? <Check size={14} color="var(--brand-green)" /> : <Copy size={14} />}
-              <span>{copied ? '복사됨' : '초대 링크'}</span>
+              <span>{copied ? '복사됨' : '초대'}</span>
             </button>
           </div>
 
@@ -396,6 +430,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 onToggleShuffle={toggleShuffle}
                 onPlayNow={playNow}
                 onSkipNext={skipNext}
+              />
+            ) : activeTab === 'history' ? (
+              <HistoryPanel
+                history={history}
+                role={role}
+                onReAdd={reAddFromHistory}
+                onPlayNow={playHistoryNow}
+                onClearHistory={clearHistory}
               />
             ) : (
               <MemberList

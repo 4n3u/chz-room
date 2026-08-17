@@ -15,6 +15,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [currentVideo, setCurrentVideo] = useState<VideoItem | null>(null);
   const [queue, setQueue] = useState<VideoItem[]>([]);
+  const [history, setHistory] = useState<VideoItem[]>([]);
   const [isShuffle, setIsShuffle] = useState(false);
   const [playback, setPlayback] = useState<PlaybackState>({
     isPlaying: false,
@@ -49,6 +50,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
             setMembers(res.room.members || []);
             setCurrentVideo(res.room.currentVideo || null);
             setQueue(res.room.queue || []);
+            setHistory(res.room.history || []);
             setPlayback(res.room.playback);
             setIsShuffle(!!res.room.isShuffle);
           } else {
@@ -71,6 +73,10 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     socket.on('queue:updated', (data: { currentVideo: VideoItem | null; queue: VideoItem[] }) => {
       setCurrentVideo(data.currentVideo);
       setQueue(data.queue);
+    });
+
+    socket.on('history:updated', (data: { history: VideoItem[] }) => {
+      setHistory(data.history || []);
     });
 
     socket.on('queue:mode_updated', (data: { isShuffle: boolean }) => {
@@ -160,21 +166,9 @@ export function useSocket({ roomId, user }: UseSocketProps) {
   const reorderQueue = useCallback(
     (fromIndex: number, toIndex: number) => {
       if (!socketRef.current || !user) return;
-      // Optimistic local state update for instant smooth UX
-      setQueue((prevQueue) => {
-        const newQ = [...prevQueue];
-        const [moved] = newQ.splice(fromIndex, 1);
-        newQ.splice(toIndex, 0, moved);
-        return newQ;
+      socketRef.current.emit('queue:reorder', { roomId, fromIndex, toIndex, user }, (res: any) => {
+        if (res?.error) setError(res.error);
       });
-
-      socketRef.current.emit(
-        'queue:reorder',
-        { roomId, fromIndex, toIndex, user },
-        (res: any) => {
-          if (res?.error) setError(res.error);
-        }
-      );
     },
     [roomId, user]
   );
@@ -207,6 +201,33 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     });
   }, [roomId, user]);
 
+  const reAddFromHistory = useCallback(
+    (historyItemId: string) => {
+      if (!socketRef.current || !user) return;
+      socketRef.current.emit('history:readd', { roomId, historyItemId, user }, (res: any) => {
+        if (res?.error) setError(res.error);
+      });
+    },
+    [roomId, user]
+  );
+
+  const playHistoryNow = useCallback(
+    (historyItemId: string) => {
+      if (!socketRef.current || !user) return;
+      socketRef.current.emit('history:play_now', { roomId, historyItemId, user }, (res: any) => {
+        if (res?.error) setError(res.error);
+      });
+    },
+    [roomId, user]
+  );
+
+  const clearHistory = useCallback(() => {
+    if (!socketRef.current || !user) return;
+    socketRef.current.emit('history:clear', { roomId, user }, (res: any) => {
+      if (res?.error) setError(res.error);
+    });
+  }, [roomId, user]);
+
   const updateRole = useCallback(
     (targetUserId: string, newRole: UserRole) => {
       if (!socketRef.current || !user) return;
@@ -224,6 +245,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     members,
     currentVideo,
     queue,
+    history,
     isShuffle,
     playback,
     error,
@@ -235,6 +257,9 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     toggleShuffle,
     playNow,
     skipNext,
+    reAddFromHistory,
+    playHistoryNow,
+    clearHistory,
     updateRole,
   };
 }

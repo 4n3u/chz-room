@@ -14,6 +14,7 @@ export interface VideoItem {
   uploadDate?: string; // 업로드 날짜 (ISO string or YYYY-MM-DD)
   viewCount?: number; // 조회수 (숫자)
   viewCountFormatted?: string; // 조회수 (포맷된 문자열: 예 "18억회", "1,250회")
+  playedAt?: number; // 재생된 시각 타임스탬프
 }
 
 export interface RoomMember {
@@ -41,6 +42,7 @@ export interface RoomState {
   currentVideo: VideoItem | null;
   playback: PlaybackState;
   queue: VideoItem[];
+  history: VideoItem[];
   members: RoomMember[];
   isShuffle: boolean;
 }

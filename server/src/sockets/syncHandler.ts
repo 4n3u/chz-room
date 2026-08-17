@@ -253,6 +253,10 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           queue: nextRes.room.queue,
         });
 
+        io.to(roomId).emit('history:updated', {
+          history: nextRes.room.history,
+        });
+
         callback?.({ success: true });
       }
     );
@@ -285,6 +289,109 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         io.to(roomId).emit('queue:updated', {
           currentVideo: playRes.currentVideo,
           queue: playRes.room.queue,
+        });
+
+        io.to(roomId).emit('history:updated', {
+          history: playRes.room.history,
+        });
+
+        callback?.({ success: true });
+      }
+    );
+
+    // 9. Re-add Video from History - Anyone can re-add
+    socket.on(
+      'history:readd',
+      (
+        data: { roomId: string; historyItemId: string; user: ChzzkUser },
+        callback?: (res: { success?: boolean; error?: string }) => void
+      ) => {
+        const { roomId, historyItemId, user } = data;
+        if (!roomId || !historyItemId || !user?.channelId) {
+          return callback?.({ error: '유효하지 않은 요청입니다.' });
+        }
+
+        const res = roomManager.reAddFromHistory(roomId, historyItemId);
+        if (!res) {
+          return callback?.({ error: '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
+        }
+
+        io.to(roomId).emit('queue:updated', {
+          currentVideo: res.room.currentVideo,
+          queue: res.room.queue,
+        });
+
+        if (res.room.currentVideo?.id === res.reAddedVideo.id) {
+          io.to(roomId).emit('video:sync', {
+            videoId: res.room.currentVideo.videoId,
+            isPlaying: true,
+            currentTime: 0,
+            lastUpdatedTimestamp: Date.now(),
+            playbackRate: 1,
+          });
+        }
+
+        callback?.({ success: true });
+      }
+    );
+
+    // 10. Play Video from History Immediately (Play Now) - Host & Mod only
+    socket.on(
+      'history:play_now',
+      (
+        data: { roomId: string; historyItemId: string; user: ChzzkUser },
+        callback?: (res: { success?: boolean; error?: string }) => void
+      ) => {
+        const { roomId, historyItemId, user } = data;
+        if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          return callback?.({ error: '영상을 즉시 재생할 권한(어드민/매니저)이 없습니다.' });
+        }
+
+        const res = roomManager.playHistoryNow(roomId, historyItemId);
+        if (!res) {
+          return callback?.({ error: '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
+        }
+
+        io.to(roomId).emit('video:sync', {
+          videoId: res.currentVideo?.videoId || null,
+          isPlaying: true,
+          currentTime: 0,
+          lastUpdatedTimestamp: Date.now(),
+          playbackRate: 1,
+        });
+
+        io.to(roomId).emit('queue:updated', {
+          currentVideo: res.currentVideo,
+          queue: res.room.queue,
+        });
+
+        io.to(roomId).emit('history:updated', {
+          history: res.room.history,
+        });
+
+        callback?.({ success: true });
+      }
+    );
+
+    // 11. Clear History - Host & Mod only
+    socket.on(
+      'history:clear',
+      (
+        data: { roomId: string; user: ChzzkUser },
+        callback?: (res: { success?: boolean; error?: string }) => void
+      ) => {
+        const { roomId, user } = data;
+        if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          return callback?.({ error: '히스토리를 비울 권한이 없습니다.' });
+        }
+
+        const updatedRoom = roomManager.clearHistory(roomId);
+        if (!updatedRoom) {
+          return callback?.({ error: '방을 찾을 수 없습니다.' });
+        }
+
+        io.to(roomId).emit('history:updated', {
+          history: updatedRoom.history,
         });
 
         callback?.({ success: true });

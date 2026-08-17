@@ -49,6 +49,7 @@ export class RoomManager {
       currentVideo: null,
       playback: initialPlayback,
       queue: [],
+      history: [],
       members: [],
       isShuffle: false,
     };
@@ -293,11 +294,35 @@ export class RoomManager {
   }
 
   /**
+   * Helper to push a video to room history
+   */
+  private pushToHistory(room: RoomState, video: VideoItem | null) {
+    if (!video) return;
+    const historyItem: VideoItem = {
+      ...video,
+      playedAt: Date.now(),
+    };
+    if (!room.history) {
+      room.history = [];
+    }
+    // Add to front (newest first)
+    room.history.unshift(historyItem);
+    // Keep max 50 items
+    if (room.history.length > 50) {
+      room.history = room.history.slice(0, 50);
+    }
+  }
+
+  /**
    * Skip to next video in queue (Sequential or Random Shuffle)
    */
   public nextVideo(roomId: string): { currentVideo: VideoItem | null; room: RoomState } | null {
     const room = this.rooms.get(roomId);
     if (!room) return null;
+
+    if (room.currentVideo) {
+      this.pushToHistory(room, room.currentVideo);
+    }
 
     let nextVideo: VideoItem | null = null;
     if (room.queue.length > 0) {
@@ -333,6 +358,10 @@ export class RoomManager {
     const itemIndex = room.queue.findIndex((item) => item.id === queueItemId);
     if (itemIndex === -1) return null;
 
+    if (room.currentVideo) {
+      this.pushToHistory(room, room.currentVideo);
+    }
+
     const [targetVideo] = room.queue.splice(itemIndex, 1);
     room.currentVideo = targetVideo;
     room.playback = {
@@ -343,6 +372,84 @@ export class RoomManager {
     };
 
     return { currentVideo: targetVideo, room };
+  }
+
+  /**
+   * Re-add a video from history to queue
+   */
+  public reAddFromHistory(
+    roomId: string,
+    historyItemId: string
+  ): { reAddedVideo: VideoItem; room: RoomState } | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    const item = room.history?.find((h) => h.id === historyItemId);
+    if (!item) return null;
+
+    const newQueueItem: VideoItem = {
+      ...item,
+      id: crypto.randomBytes(4).toString('hex'),
+      playedAt: undefined,
+    };
+
+    if (!room.currentVideo) {
+      room.currentVideo = newQueueItem;
+      room.playback = {
+        isPlaying: true,
+        currentTime: 0,
+        lastUpdatedTimestamp: Date.now(),
+        playbackRate: 1,
+      };
+    } else {
+      room.queue.push(newQueueItem);
+    }
+
+    return { reAddedVideo: newQueueItem, room };
+  }
+
+  /**
+   * Play a video from history immediately (Host & Mod only)
+   */
+  public playHistoryNow(
+    roomId: string,
+    historyItemId: string
+  ): { currentVideo: VideoItem | null; room: RoomState } | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    const item = room.history?.find((h) => h.id === historyItemId);
+    if (!item) return null;
+
+    if (room.currentVideo) {
+      this.pushToHistory(room, room.currentVideo);
+    }
+
+    const targetVideo: VideoItem = {
+      ...item,
+      id: crypto.randomBytes(4).toString('hex'),
+    };
+
+    room.currentVideo = targetVideo;
+    room.playback = {
+      isPlaying: true,
+      currentTime: 0,
+      lastUpdatedTimestamp: Date.now(),
+      playbackRate: 1,
+    };
+
+    return { currentVideo: targetVideo, room };
+  }
+
+  /**
+   * Clear playback history (Host & Mod only)
+   */
+  public clearHistory(roomId: string): RoomState | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    room.history = [];
+    return room;
   }
 
   /**

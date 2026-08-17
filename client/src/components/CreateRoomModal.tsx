@@ -24,12 +24,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError('방 제목을 입력해주세요.');
+      setError('룸 제목을 입력해주세요.');
       return;
     }
 
     if (!user) {
-      setError('방을 생성하려면 먼저 로그인이 필요합니다.');
+      setError('룸을 생성하려면 먼저 로그인이 필요합니다.');
       return;
     }
 
@@ -51,7 +51,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
         onClose();
       }
     } catch (err: any) {
-      setError(err?.response?.data?.error || '방 생성 중 오류가 발생했습니다.');
+      setError(err?.response?.data?.error || '룸 생성 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
               autoFocus
             />
             <span style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginTop: 6 }}>
-              방을 생성하면 전용 링크가 발급되며, 링크를 공유받은 누구나 참여할 수 있습니다.
+              룸을 생성하면 전용 링크가 발급되며, 링크를 공유받은 누구나 참여할 수 있습니다.
             </span>
           </div>
 

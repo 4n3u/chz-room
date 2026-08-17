@@ -72,7 +72,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
             setSettings(roomSettings);
             setQueueLimitMode(roomSettings.queueLimitMode || 'unlimited');
           } else {
-            setError(res.error || '방에 입장하지 못했습니다.');
+            setError(res.error || '룸에 입장하지 못했습니다.');
           }
         }
       );

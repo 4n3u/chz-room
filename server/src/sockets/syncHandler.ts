@@ -21,7 +21,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const joinResult = roomManager.joinRoom(roomId, socket.id, user);
         if (!joinResult) {
-          return callback?.({ success: false, error: '존재하지 않는 방입니다.' });
+          return callback?.({ success: false, error: '존재하지 않는 룸입니다.' });
         }
 
         socket.join(roomId);
@@ -69,7 +69,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const updatedRoom = roomManager.updatePlayback(roomId, isPlaying, currentTime, playbackRate);
         if (!updatedRoom) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
 
         // Broadcast sync to all clients in the room
@@ -125,7 +125,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         const bypassLimit = roomManager.hasControlPermission(roomId, user.channelId);
         const addResult = roomManager.addToQueue(roomId, videoItem, bypassLimit);
         if (!addResult.success || !addResult.room) {
-          return callback?.({ error: addResult.error || '방을 찾을 수 없습니다.' });
+          return callback?.({ error: addResult.error || '룸을 찾을 수 없습니다.' });
         }
 
         const updatedRoom = addResult.room;
@@ -165,7 +165,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const updatedRoom = roomManager.removeFromQueue(roomId, queueItemId);
         if (!updatedRoom) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
 
         io.to(roomId).emit('queue:updated', {
@@ -191,7 +191,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const updatedRoom = roomManager.reorderQueue(roomId, fromIndex, toIndex);
         if (!updatedRoom) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
 
         io.to(roomId).emit('queue:updated', {
@@ -217,7 +217,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const updatedRoom = roomManager.setShuffleMode(roomId, isShuffle);
         if (!updatedRoom) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
 
         io.to(roomId).emit('queue:mode_updated', {
@@ -242,7 +242,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const nextRes = roomManager.nextVideo(roomId);
         if (!nextRes) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
 
         // Broadcast video sync and queue update
@@ -281,7 +281,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const playRes = roomManager.playSpecificVideo(roomId, queueItemId);
         if (!playRes) {
-          return callback?.({ error: '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
+          return callback?.({ error: '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }
 
         io.to(roomId).emit('video:sync', {
@@ -320,7 +320,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         const bypassLimit = roomManager.hasControlPermission(roomId, user.channelId);
         const res = roomManager.reAddFromHistory(roomId, historyItemId, user.channelId, bypassLimit);
         if (!res.success || !res.room || !res.reAddedVideo) {
-          return callback?.({ error: res.error || '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
+          return callback?.({ error: res.error || '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }
 
         io.to(roomId).emit('queue:updated', {
@@ -356,7 +356,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const res = roomManager.playHistoryNow(roomId, historyItemId);
         if (!res) {
-          return callback?.({ error: '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
+          return callback?.({ error: '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }
 
         io.to(roomId).emit('video:sync', {
@@ -394,7 +394,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const updatedRoom = roomManager.clearHistory(roomId);
         if (!updatedRoom) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
 
         io.to(roomId).emit('history:updated', {
@@ -442,13 +442,13 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, settings, queueLimitMode, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
-          return callback?.({ error: '방 설정을 변경할 권한(어드민/매니저)이 없습니다.' });
+          return callback?.({ error: '룸 설정을 변경할 권한(어드민/매니저)이 없습니다.' });
         }
 
         const newSettings: Partial<RoomSettings> = settings || (queueLimitMode ? { queueLimitMode } : {});
         const updatedRoom = roomManager.updateRoomSettings(roomId, newSettings);
         if (!updatedRoom) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
 
         io.to(roomId).emit('room:settings_updated', {

@@ -135,7 +135,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
             />
             <input
               type="text"
-              placeholder="방 코드 또는 초대 링크..."
+              placeholder="룸 코드 또는 초대 링크..."
               value={roomCodeInput}
               onChange={(e) => setRoomCodeInput(e.target.value)}
               style={{

@@ -46,7 +46,7 @@ export const MemberList: React.FC<MemberListProps> = ({
         }}
       >
         <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-          방 참가자 목록
+          룸 참가자 목록
         </span>
         <span
           style={{

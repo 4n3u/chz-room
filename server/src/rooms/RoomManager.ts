@@ -241,7 +241,7 @@ export class RoomManager {
     bypassLimit: boolean = false
   ): { success: boolean; room?: RoomState; error?: string } {
     const room = this.rooms.get(roomId);
-    if (!room) return { success: false, error: '방을 찾을 수 없습니다.' };
+    if (!room) return { success: false, error: '룸을 찾을 수 없습니다.' };
 
     const settings = room.settings || DEFAULT_ROOM_SETTINGS;
 
@@ -253,7 +253,7 @@ export class RoomManager {
       if (settings.requestPermission === 'admin_only') {
         return {
           success: false,
-          error: '현재 어드민과 매니저만 영상을 신청할 수 있도록 설정된 방입니다.',
+          error: '현재 어드민과 매니저만 영상을 신청할 수 있도록 설정된 룸입니다.',
         };
       }
 
@@ -269,7 +269,7 @@ export class RoomManager {
       if (settings.allowShorts === false && (video.isShorts || (video.duration && video.duration <= 60))) {
         return {
           success: false,
-          error: '이 방에서는 YouTube Shorts(쇼츠) 영상을 신청할 수 없습니다.',
+          error: '이 룸에서는 YouTube Shorts(쇼츠) 영상을 신청할 수 없습니다.',
         };
       }
 
@@ -280,7 +280,7 @@ export class RoomManager {
         const vidSec = video.duration % 60;
         return {
           success: false,
-          error: `이 방에서는 최대 ${maxMin}분 이하의 영상만 신청할 수 있습니다 (현재 영상: ${vidMin}분 ${vidSec}초).`,
+          error: `이 룸에서는 최대 ${maxMin}분 이하의 영상만 신청할 수 있습니다 (현재 영상: ${vidMin}분 ${vidSec}초).`,
         };
       }
 
@@ -326,7 +326,7 @@ export class RoomManager {
         if (isPlayingMine || isInQueue || isInHistory) {
           return {
             success: false,
-            error: '이 방에서는 1인당 1회만 영상을 신청할 수 있습니다. (방당 1곡 제한)',
+            error: '이 룸에서는 1인당 1회만 영상을 신청할 수 있습니다. (룸당 1곡 제한)',
           };
         }
       }
@@ -506,7 +506,7 @@ export class RoomManager {
     bypassLimit: boolean = false
   ): { success: boolean; reAddedVideo?: VideoItem; room?: RoomState; error?: string } {
     const room = this.rooms.get(roomId);
-    if (!room) return { success: false, error: '방을 찾을 수 없습니다.' };
+    if (!room) return { success: false, error: '룸을 찾을 수 없습니다.' };
 
     const item = room.history?.find((h) => h.id === historyItemId);
     if (!item) return { success: false, error: '히스토리 영상을 찾을 수 없습니다.' };

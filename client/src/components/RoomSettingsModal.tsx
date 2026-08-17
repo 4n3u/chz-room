@@ -72,7 +72,7 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Settings size={18} color="var(--brand-green)" />
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>
-              방 설정 (운영 정책)
+              룸 설정 (운영 정책)
             </span>
           </div>
 
@@ -147,7 +147,7 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
               {[
                 { value: 'unlimited' as QueueLimitMode, label: '무제한 신청', desc: '제한 없이 원하는 만큼 신청 가능' },
                 { value: 'once_in_queue' as QueueLimitMode, label: '재생목록 내 1곡 제한', desc: '대기열에 본인 곡이 1개만 머무를 수 있음 (완료 시 재신청 가능)' },
-                { value: 'once_in_room' as QueueLimitMode, label: '방당 1인 1곡 제한', desc: '이 방에서 1인당 평생 1곡만 신청 가능 (히스토리 포함)' },
+                { value: 'once_in_room' as QueueLimitMode, label: '룸당 1인 1곡 제한', desc: '이 룸에서 1인당 평생 1곡만 신청 가능 (히스토리 포함)' },
               ].map((opt) => {
                 const active = settings.queueLimitMode === opt.value;
                 return (

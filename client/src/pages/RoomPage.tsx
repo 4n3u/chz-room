@@ -395,7 +395,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
             {canManage && (
               <button
                 onClick={() => setShowSettingsModal(true)}
-                title="방 설정 (신청 제한 등)"
+                title="룸 설정 (신청 제한 등)"
                 style={{
                   width: 34,
                   height: 34,

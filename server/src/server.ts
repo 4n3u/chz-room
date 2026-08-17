@@ -45,7 +45,7 @@ export function createApp(): Express {
     const { title, hostUser, isPrivate, password } = req.body;
 
     if (!title || !hostUser?.channelId) {
-      return res.status(400).json({ error: '방 제목과 호스트 사용자 정보가 필요합니다.' });
+      return res.status(400).json({ error: '룸 제목과 호스트 사용자 정보가 필요합니다.' });
     }
 
     const room = globalRoomManager.createRoom({
@@ -61,7 +61,7 @@ export function createApp(): Express {
   app.get('/api/rooms/:id', (req: Request, res: Response) => {
     const room = globalRoomManager.getRoom(req.params.id);
     if (!room) {
-      return res.status(404).json({ error: '방을 찾을 수 없습니다.' });
+      return res.status(404).json({ error: '룸을 찾을 수 없습니다.' });
     }
 
     // Don't expose password in response

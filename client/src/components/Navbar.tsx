@@ -60,23 +60,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
           <span>chz-room</span>
         </div>
 
-        {/* Right Section: Theme Toggle + Auth */}
+        {/* Right Section: Auth & Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Dark / Light Mode Toggle Button */}
-          <button
-            className="btn-icon"
-            onClick={toggleTheme}
-            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-            aria-label="Toggle theme"
-            style={{ width: 34, height: 34 }}
-          >
-            {theme === 'dark' ? (
-              <Sun size={17} color="var(--brand-green)" />
-            ) : (
-              <Moon size={17} color="var(--text-secondary)" />
-            )}
-          </button>
-
           {user ? (
             /* Logged in: Profile Pill with Dropdown */
             <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -150,7 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                     position: 'absolute',
                     top: 'calc(100% + 8px)',
                     right: 0,
-                    width: 180,
+                    minWidth: 230,
+                    maxWidth: 280,
                     backgroundColor: 'var(--surface-dark)',
                     border: '1px solid var(--border-color)',
                     borderRadius: 'var(--radius-md)',
@@ -160,15 +146,67 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                     animation: 'fadeIn 0.15s ease',
                   }}
                 >
+                  {/* User Profile Info Header with Full UID */}
                   <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        marginBottom: 4,
+                      }}
+                    >
                       {user.channelName}
                     </p>
-                    <p style={{ fontSize: 11, color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {user.channelId}
+                    <p
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--text-dim)',
+                        wordBreak: 'break-all',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      UID: {user.channelId}
                     </p>
                   </div>
 
+                  {/* Dark / Light Mode Switch Item (Above Logout) */}
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 13,
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background-color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-dark-hover)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {theme === 'dark' ? (
+                        <Sun size={15} color="var(--brand-green)" />
+                      ) : (
+                        <Moon size={15} color="var(--text-secondary)" />
+                      )}
+                      <span>{theme === 'dark' ? '라이트 모드' : '다크 모드'}</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                      {theme === 'dark' ? 'Dark' : 'Light'}
+                    </span>
+                  </button>
+
+                  <div style={{ height: 1, backgroundColor: 'var(--border-subtle)', margin: '4px 0' }} />
+
+                  {/* Logout Button */}
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
@@ -197,8 +235,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
               )}
             </div>
           ) : (
-            /* Not logged in: Simple Login Buttons */
+            /* Not logged in: Simple Login Buttons + Minimal Theme Button */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                className="btn-icon"
+                onClick={toggleTheme}
+                title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+                aria-label="Toggle theme"
+                style={{ width: 34, height: 34 }}
+              >
+                {theme === 'dark' ? (
+                  <Sun size={16} color="var(--brand-green)" />
+                ) : (
+                  <Moon size={16} color="var(--text-secondary)" />
+                )}
+              </button>
               <button
                 onClick={() => setShowMockModal(true)}
                 style={{

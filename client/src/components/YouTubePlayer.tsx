@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PlaybackState, UserRole, VideoItem } from '../types';
-import { Film } from 'lucide-react';
+import { Film, Radio } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -29,6 +29,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const isApiLoadedRef = useRef(false);
   const isInternalChangeRef = useRef(false);
   const [playerReady, setPlayerReady] = useState(false);
+  
+  // Track if viewer has manually desynced locally (seeking/pausing privately)
+  const [isLocalDesynced, setIsLocalDesynced] = useState(false);
 
   const canControl = role === 'host' || role === 'mod';
 
@@ -49,6 +52,11 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     };
   }, []);
 
+  // Reset local desync when video changes
+  useEffect(() => {
+    setIsLocalDesynced(false);
+  }, [currentVideo?.videoId]);
+
   // 2. Initialize or Update Player when currentVideo changes
   useEffect(() => {
     if (!currentVideo?.videoId) {
@@ -67,7 +75,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       }
 
       if (playerRef.current) {
-        // Just load new video if player already exists
+        // Load new video if player already exists
         isInternalChangeRef.current = true;
         playerRef.current.loadVideoById({
           videoId: currentVideo.videoId,
@@ -89,8 +97,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         videoId: currentVideo.videoId,
         playerVars: {
           autoplay: playback.isPlaying ? 1 : 0,
-          controls: 1, // Always allow native controls
-          disablekb: canControl ? 0 : 1, // Disable keyboard for viewers
+          controls: 1, // Native YouTube controls
+          disablekb: 0, // Enable keyboard
           enablejsapi: 1,
           modestbranding: 1,
           rel: 0,
@@ -121,7 +129,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               return;
             }
 
-            // Only propagate control events if user is Host or Mod
+            // Propagate control events if user is Admin or Manager
             if (canControl) {
               const currentTime = event.target.getCurrentTime();
               const playbackRate = event.target.getPlaybackRate();
@@ -131,6 +139,9 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               } else if (event.data === window.YT.PlayerState.PAUSED) {
                 onVideoControl(false, currentTime, playbackRate);
               }
+            } else {
+              // Regular Viewer: keep control locally without broadcasting globally
+              setIsLocalDesynced(true);
             }
           },
         },
@@ -140,9 +151,11 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     initPlayer();
   }, [currentVideo?.videoId]);
 
-  // 3. Synchronize incoming server playback state (for Viewers & sync updates)
+  // 3. Synchronize incoming server playback state (Only when NOT locally desynced or when user is controller)
   useEffect(() => {
     if (!playerRef.current || !playerReady || !currentVideo) return;
+    // If viewer is enjoying private local seek/pause, do not interrupt
+    if (!canControl && isLocalDesynced) return;
 
     const player = playerRef.current;
     if (typeof player.getPlayerState !== 'function') return;
@@ -177,14 +190,16 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     setTimeout(() => {
       isInternalChangeRef.current = false;
     }, 600);
-  }, [playback.isPlaying, playback.currentTime, playback.lastUpdatedTimestamp, playback.playbackRate]);
+  }, [playback.isPlaying, playback.currentTime, playback.lastUpdatedTimestamp, playback.playbackRate, isLocalDesynced]);
 
-  // 4. Periodic Drift Correction Check (every 2 seconds)
+  // 4. Periodic Drift Correction Check (Only when synchronized with the room)
   useEffect(() => {
     if (!playerRef.current || !playerReady || !currentVideo || !playback.isPlaying) return;
+    if (!canControl && isLocalDesynced) return;
 
     const interval = setInterval(() => {
       if (isInternalChangeRef.current || !playerRef.current?.getCurrentTime) return;
+      if (!canControl && isLocalDesynced) return;
 
       const player = playerRef.current;
       const expectedTime =
@@ -202,7 +217,30 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [playback, playerReady, currentVideo]);
+  }, [playback, playerReady, currentVideo, isLocalDesynced]);
+
+  // Manual Re-sync handler for viewers
+  const handleSyncToLive = () => {
+    if (!playerRef.current) return;
+    const player = playerRef.current;
+    
+    isInternalChangeRef.current = true;
+    const expectedTime = playback.isPlaying
+      ? playback.currentTime + (Date.now() - playback.lastUpdatedTimestamp) / 1000
+      : playback.currentTime;
+
+    player.seekTo(Math.max(0, expectedTime), true);
+    if (playback.isPlaying) {
+      player.playVideo();
+    } else {
+      player.pauseVideo();
+    }
+
+    setIsLocalDesynced(false);
+    setTimeout(() => {
+      isInternalChangeRef.current = false;
+    }, 600);
+  };
 
   return (
     <div
@@ -219,16 +257,56 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       }}
     >
       {currentVideo ? (
-        <div
-          id="youtube-player-element"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-          }}
-        />
+        <>
+          <div
+            id="youtube-player-element"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+            }}
+          />
+
+          {/* Floating "Re-sync to Room" Badge/Button when Viewer is locally desynced */}
+          {!canControl && isLocalDesynced && (
+            <button
+              onClick={handleSyncToLive}
+              style={{
+                position: 'absolute',
+                top: 14,
+                right: 14,
+                zIndex: 10,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                color: 'var(--brand-green)',
+                border: '1px solid rgba(0, 255, 163, 0.4)',
+                borderRadius: 'var(--radius-full)',
+                padding: '6px 14px',
+                fontSize: 12,
+                fontWeight: 700,
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.6)',
+                backdropFilter: 'blur(6px)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--brand-green)';
+                e.currentTarget.style.color = '#000000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+                e.currentTarget.style.color = 'var(--brand-green)';
+              }}
+            >
+              <Radio size={13} className="animate-pulse" />
+              <span>실시간 싱크 맞추기</span>
+            </button>
+          )}
+        </>
       ) : (
         /* Empty Queue Placeholder */
         <div

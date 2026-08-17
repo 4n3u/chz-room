@@ -15,6 +15,7 @@ import {
   Eye,
   Calendar,
   User,
+  ExternalLink,
 } from 'lucide-react';
 
 interface RoomPageProps {
@@ -165,19 +166,58 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
           {/* Minimal Clean Video Info (No card box, no icons, no '조회수' text) */}
           {currentVideo && (
             <div style={{ marginTop: 12, padding: '0 2px' }}>
-              {/* Title */}
-              <h2
+              {/* Title & Open in YouTube Link */}
+              <div
                 style={{
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 10,
                   marginBottom: 6,
-                  lineHeight: 1.4,
-                  wordBreak: 'break-word',
                 }}
               >
-                {currentVideo.title}
-              </h2>
+                <h2
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    lineHeight: 1.4,
+                    wordBreak: 'break-word',
+                    flex: 1,
+                  }}
+                >
+                  {currentVideo.title}
+                </h2>
+
+                <a
+                  href={`https://www.youtube.com/watch?v=${currentVideo.videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="유튜브에서 새 탭으로 열기"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-muted)',
+                    backgroundColor: 'transparent',
+                    transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--brand-green)';
+                    e.currentTarget.style.backgroundColor = 'var(--surface-dark-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <ExternalLink size={16} />
+                </a>
+              </div>
 
               {/* Sub Meta Line: Channel • Views • Upload Date • Added By */}
               <div

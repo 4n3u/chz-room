@@ -98,47 +98,40 @@ export const MemberList: React.FC<MemberListProps> = ({
                   border: '1px solid var(--border-color)',
                 }}
               >
-                {/* User Info */}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {member.user.channelName}
+                {/* User Info & Inline Role Badges */}
+                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {member.user.channelName}
+                  </span>
+                  {member.user.verifiedMark && (
+                    <CheckCircle2 size={13} color="var(--brand-green)" fill="var(--brand-green)" />
+                  )}
+                  {isMe && (
+                    <span style={{ fontSize: 10, color: 'var(--brand-green)', fontWeight: 800 }}>
+                      (나)
                     </span>
-                    {member.user.verifiedMark && (
-                      <CheckCircle2 size={13} color="var(--brand-green)" fill="var(--brand-green)" />
-                    )}
-                    {isMe && (
-                      <span style={{ fontSize: 10, color: 'var(--brand-green)', fontWeight: 800 }}>
-                        (나)
-                      </span>
-                    )}
-                  </div>
+                  )}
 
-                  {/* Role Badge */}
-                  <div style={{ marginTop: 2 }}>
-                    {member.role === 'host' && (
-                      <span className="badge badge-host">
-                        <Crown size={10} /> 어드민
-                      </span>
-                    )}
-                    {member.role === 'mod' && (
-                      <span className="badge badge-mod">
-                        <Shield size={10} /> 매니저
-                      </span>
-                    )}
-                    {member.role === 'viewer' && (
-                      <span className="badge badge-viewer">시청자</span>
-                    )}
-                  </div>
+                  {/* Inline Role Badges (Admin / Manager only) */}
+                  {member.role === 'host' && (
+                    <span className="badge badge-host" style={{ marginLeft: 2 }}>
+                      <Crown size={10} /> 어드민
+                    </span>
+                  )}
+                  {member.role === 'mod' && (
+                    <span className="badge badge-mod" style={{ marginLeft: 2 }}>
+                      <Shield size={10} /> 매니저
+                    </span>
+                  )}
                 </div>
 
                 {/* Host Management Controls */}

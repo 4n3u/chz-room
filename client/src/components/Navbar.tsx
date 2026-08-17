@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                         lineHeight: 1.4,
                       }}
                     >
-                      UID: {user.channelId}
+                      {user.channelId}
                     </p>
                   </div>
 

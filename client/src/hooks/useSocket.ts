@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ChzzkUser, PlaybackState, RoomMember, RoomState, UserRole, VideoItem } from '../types';
+import { ChzzkUser, PlaybackState, RoomMember, RoomState, UserRole, VideoItem, QueueLimitMode } from '../types';
 
 interface UseSocketProps {
   roomId: string;
@@ -17,6 +17,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
   const [queue, setQueue] = useState<VideoItem[]>([]);
   const [history, setHistory] = useState<VideoItem[]>([]);
   const [isShuffle, setIsShuffle] = useState(false);
+  const [queueLimitMode, setQueueLimitMode] = useState<QueueLimitMode>('unlimited');
   const [playback, setPlayback] = useState<PlaybackState>({
     isPlaying: false,
     currentTime: 0,
@@ -53,6 +54,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
             setHistory(res.room.history || []);
             setPlayback(res.room.playback);
             setIsShuffle(!!res.room.isShuffle);
+            setQueueLimitMode(res.room.queueLimitMode || 'unlimited');
           } else {
             setError(res.error || '방에 입장하지 못했습니다.');
           }
@@ -81,6 +83,10 @@ export function useSocket({ roomId, user }: UseSocketProps) {
 
     socket.on('queue:mode_updated', (data: { isShuffle: boolean }) => {
       setIsShuffle(data.isShuffle);
+    });
+
+    socket.on('room:settings_updated', (data: { queueLimitMode: QueueLimitMode }) => {
+      setQueueLimitMode(data.queueLimitMode);
     });
 
     socket.on('members:updated', (newMembers: RoomMember[]) => {
@@ -228,6 +234,20 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     });
   }, [roomId, user]);
 
+  const updateQueueLimitMode = useCallback(
+    (mode: QueueLimitMode) => {
+      if (!socketRef.current || !user) return;
+      socketRef.current.emit(
+        'room:settings_update',
+        { roomId, queueLimitMode: mode, user },
+        (res: any) => {
+          if (res?.error) setError(res.error);
+        }
+      );
+    },
+    [roomId, user]
+  );
+
   const updateRole = useCallback(
     (targetUserId: string, newRole: UserRole) => {
       if (!socketRef.current || !user) return;
@@ -247,6 +267,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     queue,
     history,
     isShuffle,
+    queueLimitMode,
     playback,
     error,
     clearError: () => setError(null),
@@ -260,6 +281,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     reAddFromHistory,
     playHistoryNow,
     clearHistory,
+    updateQueueLimitMode,
     updateRole,
   };
 }

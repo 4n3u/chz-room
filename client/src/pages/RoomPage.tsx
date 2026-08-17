@@ -5,6 +5,7 @@ import { YouTubePlayer } from '../components/YouTubePlayer';
 import { QueuePanel } from '../components/QueuePanel';
 import { HistoryPanel } from '../components/HistoryPanel';
 import { MemberList } from '../components/MemberList';
+import { RoomSettingsModal } from '../components/RoomSettingsModal';
 import { MockLoginModal } from '../components/MockLoginModal';
 import {
   Copy,
@@ -18,6 +19,7 @@ import {
   Calendar,
   User,
   ExternalLink,
+  Settings,
 } from 'lucide-react';
 
 interface RoomPageProps {
@@ -51,6 +53,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
   const [activeTab, setActiveTab] = useState<'queue' | 'history' | 'members'>('queue');
   const [copied, setCopied] = useState(false);
   const [showMockLogin, setShowMockLogin] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const {
     role,
@@ -59,6 +62,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     queue,
     history,
     isShuffle,
+    queueLimitMode,
     playback,
     error,
     clearError,
@@ -72,8 +76,11 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     reAddFromHistory,
     playHistoryNow,
     clearHistory,
+    updateQueueLimitMode,
     updateRole,
   } = useSocket({ roomId, user });
+
+  const canManage = role === 'host' || role === 'mod';
 
   const handleCopyLink = () => {
     const url = window.location.href;
@@ -300,9 +307,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
           )}
         </div>
 
-        {/* Right: Sidebar Tabs + Copy Link Button */}
+        {/* Right: Sidebar Tabs + Copy Link Button + Room Settings */}
         <div style={{ height: 'calc(100vh - 130px)', minHeight: 480, display: 'flex', flexDirection: 'column' }}>
-          {/* Top Header Actions (Unified Toolbar with 3 Tabs & Invite Link) */}
+          {/* Top Header Actions (Unified Toolbar with 3 Tabs & Room Settings) */}
           <div
             style={{
               display: 'flex',
@@ -384,6 +391,35 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
             {/* Divider */}
             <div style={{ width: 1, height: 18, backgroundColor: 'var(--border-color)', margin: '0 2px' }} />
 
+            {/* Room Settings Button (Host & Mod only) */}
+            {canManage && (
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                title="방 설정 (신청 제한 등)"
+                style={{
+                  width: 34,
+                  height: 34,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 7,
+                  color: 'var(--text-muted)',
+                  transition: 'all 0.15s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--brand-green)';
+                  e.currentTarget.style.backgroundColor = 'var(--brand-green-glow)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <Settings size={15} />
+              </button>
+            )}
+
             {/* Compact Invite Link Copy Button */}
             <button
               onClick={handleCopyLink}
@@ -450,6 +486,13 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
           </div>
         </div>
       </div>
+
+      <RoomSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        currentMode={queueLimitMode}
+        onUpdateMode={updateQueueLimitMode}
+      />
 
       <MockLoginModal isOpen={showMockLogin} onClose={() => setShowMockLogin(false)} />
     </div>

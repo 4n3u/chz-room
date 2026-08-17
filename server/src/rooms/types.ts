@@ -1,6 +1,7 @@
 import { ChzzkUser } from '../auth/types';
 
 export type UserRole = 'host' | 'mod' | 'viewer';
+export type QueueLimitMode = 'unlimited' | 'once_in_queue' | 'once_in_room';
 
 export interface VideoItem {
   id: string; // unique item id in playlist
@@ -45,6 +46,7 @@ export interface RoomState {
   history: VideoItem[];
   members: RoomMember[];
   isShuffle: boolean;
+  queueLimitMode: QueueLimitMode;
 }
 
 export interface CreateRoomOptions {

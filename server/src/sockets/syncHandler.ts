@@ -2,7 +2,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { RoomManager } from '../rooms/RoomManager';
 import { ChzzkUser } from '../auth/types';
 import { fetchYouTubeMetadata, parseYouTubeId } from '../utils/youtube';
-import { UserRole, VideoItem } from '../rooms/types';
+import { UserRole, VideoItem, QueueLimitMode } from '../rooms/types';
 import crypto from 'crypto';
 
 export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManager) {
@@ -85,7 +85,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       }
     );
 
-    // 3. Add to Queue - Anyone can add
+    // 3. Add to Queue - Anyone can add (Subject to queueLimitMode for viewers)
     socket.on(
       'queue:add',
       async (
@@ -119,10 +119,13 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         const currentRoomBefore = roomManager.getRoom(roomId);
         const wasEmpty = !currentRoomBefore?.currentVideo;
 
-        const updatedRoom = roomManager.addToQueue(roomId, videoItem);
-        if (!updatedRoom) {
-          return callback?.({ error: '방을 찾을 수 없습니다.' });
+        const bypassLimit = roomManager.hasControlPermission(roomId, user.channelId);
+        const addResult = roomManager.addToQueue(roomId, videoItem, bypassLimit);
+        if (!addResult.success || !addResult.room) {
+          return callback?.({ error: addResult.error || '방을 찾을 수 없습니다.' });
         }
+
+        const updatedRoom = addResult.room;
 
         // If it became the currently playing video immediately
         if (wasEmpty) {
@@ -299,7 +302,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       }
     );
 
-    // 9. Re-add Video from History - Anyone can re-add
+    // 9. Re-add Video from History - Anyone can re-add (Subject to limit)
     socket.on(
       'history:readd',
       (
@@ -311,9 +314,10 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           return callback?.({ error: '유효하지 않은 요청입니다.' });
         }
 
-        const res = roomManager.reAddFromHistory(roomId, historyItemId);
-        if (!res) {
-          return callback?.({ error: '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
+        const bypassLimit = roomManager.hasControlPermission(roomId, user.channelId);
+        const res = roomManager.reAddFromHistory(roomId, historyItemId, user.channelId, bypassLimit);
+        if (!res.success || !res.room || !res.reAddedVideo) {
+          return callback?.({ error: res.error || '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
         }
 
         io.to(roomId).emit('queue:updated', {
@@ -398,7 +402,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       }
     );
 
-    // 9. Role Update (Promote / Demote Moderator) - Host only
+    // 12. Role Update (Promote / Demote Moderator) - Host only
     socket.on(
       'role:update',
       (
@@ -418,6 +422,31 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         }
 
         callback?.({ success: true });
+      }
+    );
+
+    // 13. Room Settings Update (Queue Limit Mode) - Host & Mod only
+    socket.on(
+      'room:settings_update',
+      (
+        data: { roomId: string; queueLimitMode: QueueLimitMode; user: ChzzkUser },
+        callback?: (res: { success?: boolean; queueLimitMode?: QueueLimitMode; error?: string }) => void
+      ) => {
+        const { roomId, queueLimitMode, user } = data;
+        if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          return callback?.({ error: '방 설정을 변경할 권한(어드민/매니저)이 없습니다.' });
+        }
+
+        const updatedRoom = roomManager.setQueueLimitMode(roomId, queueLimitMode);
+        if (!updatedRoom) {
+          return callback?.({ error: '방을 찾을 수 없습니다.' });
+        }
+
+        io.to(roomId).emit('room:settings_updated', {
+          queueLimitMode: updatedRoom.queueLimitMode,
+        });
+
+        callback?.({ success: true, queueLimitMode: updatedRoom.queueLimitMode });
       }
     );
 

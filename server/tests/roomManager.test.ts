@@ -106,13 +106,13 @@ describe('RoomManager Tests', () => {
 
     // Add first video -> If currentVideo is null, it should automatically become currentVideo
     const res1 = roomManager.addToQueue(room.id, video1);
-    expect(res1?.currentVideo?.videoId).toBe('vid-111');
-    expect(res1?.queue.length).toBe(0);
+    expect(res1.room?.currentVideo?.videoId).toBe('vid-111');
+    expect(res1.room?.queue.length).toBe(0);
 
     // Add second video -> goes into queue
     const res2 = roomManager.addToQueue(room.id, video2);
-    expect(res2?.currentVideo?.videoId).toBe('vid-111');
-    expect(res2?.queue.length).toBe(1);
+    expect(res2.room?.currentVideo?.videoId).toBe('vid-111');
+    expect(res2.room?.queue.length).toBe(1);
 
     // Skip to next video
     const nextRes = roomManager.nextVideo(room.id);
@@ -223,6 +223,57 @@ describe('RoomManager Tests', () => {
     // Clear history
     roomManager.clearHistory(room.id);
     expect(roomManager.getRoom(room.id)?.history.length).toBe(0);
+  });
+
+  it('should enforce queue limit mode settings (unlimited, once_in_queue, once_in_room)', () => {
+    const room = roomManager.createRoom({
+      title: '테스트방',
+      hostUser,
+    });
+
+    const userA = { channelId: 'user-a', channelName: 'User A' };
+    const userB = { channelId: 'user-b', channelName: 'User B' };
+
+    const vA1 = { id: 'item-a1', videoId: 'vid-a1', title: 'A1', thumbnailUrl: '', addedBy: userA };
+    const vA2 = { id: 'item-a2', videoId: 'vid-a2', title: 'A2', thumbnailUrl: '', addedBy: userA };
+    const vB1 = { id: 'item-b1', videoId: 'vid-b1', title: 'B1', thumbnailUrl: '', addedBy: userB };
+
+    // 1. Unlimited (Default)
+    expect(roomManager.getRoom(room.id)?.queueLimitMode).toBe('unlimited');
+    const resA1 = roomManager.addToQueue(room.id, vA1, false);
+    expect(resA1.success).toBe(true);
+
+    const resA2 = roomManager.addToQueue(room.id, vA2, false);
+    expect(resA2.success).toBe(true);
+
+    // 2. Set to 'once_in_queue'
+    roomManager.setQueueLimitMode(room.id, 'once_in_queue');
+    const vA3 = { id: 'item-a3', videoId: 'vid-a3', title: 'A3', thumbnailUrl: '', addedBy: userA };
+    const resA3 = roomManager.addToQueue(room.id, vA3, false);
+    expect(resA3.success).toBe(false);
+    expect(resA3.error).toContain('1곡 제한');
+
+    // Admin / Mod bypass
+    const resA3Bypass = roomManager.addToQueue(room.id, vA3, true);
+    expect(resA3Bypass.success).toBe(true);
+
+    // 3. Set to 'once_in_room'
+    roomManager.setQueueLimitMode(room.id, 'once_in_room');
+    // User B adds 1st video
+    const resB1 = roomManager.addToQueue(room.id, vB1, false);
+    expect(resB1.success).toBe(true);
+
+    // Skip so that B1 moves to history or finishes
+    roomManager.nextVideo(room.id); // moves current to history
+    roomManager.nextVideo(room.id);
+    roomManager.nextVideo(room.id);
+    roomManager.nextVideo(room.id);
+
+    // User B tries to add 2nd video after their 1st was played and moved to history
+    const vB2 = { id: 'item-b2', videoId: 'vid-b2', title: 'B2', thumbnailUrl: '', addedBy: userB };
+    const resB2 = roomManager.addToQueue(room.id, vB2, false);
+    expect(resB2.success).toBe(false);
+    expect(resB2.error).toContain('1회만 영상을 신청');
   });
 });
 

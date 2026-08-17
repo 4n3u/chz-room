@@ -6,6 +6,7 @@ export interface ChzzkUser {
 }
 
 export type UserRole = 'host' | 'mod' | 'viewer';
+export type QueueLimitMode = 'unlimited' | 'once_in_queue' | 'once_in_room';
 
 export interface VideoItem {
   id: string;
@@ -50,6 +51,7 @@ export interface RoomState {
   history: VideoItem[];
   members: RoomMember[];
   isShuffle?: boolean;
+  queueLimitMode?: QueueLimitMode;
 }
 
 export interface PublicRoomSummary {

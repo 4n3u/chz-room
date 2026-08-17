@@ -7,6 +7,7 @@ import {
   RoomState,
   UserRole,
   VideoItem,
+  QueueLimitMode,
 } from './types';
 import { ChzzkUser } from '../auth/types';
 
@@ -52,6 +53,7 @@ export class RoomManager {
       history: [],
       members: [],
       isShuffle: false,
+      queueLimitMode: 'unlimited',
     };
 
     this.rooms.set(id, room);
@@ -228,11 +230,43 @@ export class RoomManager {
   }
 
   /**
-   * Add a video to queue
+   * Add a video to queue with optional limit enforcement
    */
-  public addToQueue(roomId: string, video: VideoItem): RoomState | null {
+  public addToQueue(
+    roomId: string,
+    video: VideoItem,
+    bypassLimit: boolean = false
+  ): { success: boolean; room?: RoomState; error?: string } {
     const room = this.rooms.get(roomId);
-    if (!room) return null;
+    if (!room) return { success: false, error: '방을 찾을 수 없습니다.' };
+
+    // Check submission limits for viewers
+    if (!bypassLimit && room.queueLimitMode && room.queueLimitMode !== 'unlimited') {
+      const userChannelId = video.addedBy?.channelId;
+
+      if (room.queueLimitMode === 'once_in_queue') {
+        const isPlayingMine = room.currentVideo?.addedBy?.channelId === userChannelId;
+        const isInQueue = room.queue.some((item) => item.addedBy?.channelId === userChannelId);
+
+        if (isPlayingMine || isInQueue) {
+          return {
+            success: false,
+            error: '현재 대기열에 이미 신청하신 영상이 있습니다. (재생목록 내 1곡 제한)',
+          };
+        }
+      } else if (room.queueLimitMode === 'once_in_room') {
+        const isPlayingMine = room.currentVideo?.addedBy?.channelId === userChannelId;
+        const isInQueue = room.queue.some((item) => item.addedBy?.channelId === userChannelId);
+        const isInHistory = room.history?.some((item) => item.addedBy?.channelId === userChannelId);
+
+        if (isPlayingMine || isInQueue || isInHistory) {
+          return {
+            success: false,
+            error: '이 방에서는 1인당 1회만 영상을 신청할 수 있습니다. (방당 1곡 제한)',
+          };
+        }
+      }
+    }
 
     // If no video is currently playing, set as currentVideo and play immediately
     if (!room.currentVideo) {
@@ -247,6 +281,17 @@ export class RoomManager {
       room.queue.push(video);
     }
 
+    return { success: true, room };
+  }
+
+  /**
+   * Set queue submission limit mode (Host & Mod only)
+   */
+  public setQueueLimitMode(roomId: string, mode: QueueLimitMode): RoomState | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    room.queueLimitMode = mode;
     return room;
   }
 
@@ -375,17 +420,39 @@ export class RoomManager {
   }
 
   /**
-   * Re-add a video from history to queue
+   * Re-add a video from history to queue with limit check
    */
   public reAddFromHistory(
     roomId: string,
-    historyItemId: string
-  ): { reAddedVideo: VideoItem; room: RoomState } | null {
+    historyItemId: string,
+    userChannelId?: string,
+    bypassLimit: boolean = false
+  ): { success: boolean; reAddedVideo?: VideoItem; room?: RoomState; error?: string } {
     const room = this.rooms.get(roomId);
-    if (!room) return null;
+    if (!room) return { success: false, error: '방을 찾을 수 없습니다.' };
 
     const item = room.history?.find((h) => h.id === historyItemId);
-    if (!item) return null;
+    if (!item) return { success: false, error: '히스토리 영상을 찾을 수 없습니다.' };
+
+    // Check submission limits
+    if (!bypassLimit && room.queueLimitMode && room.queueLimitMode !== 'unlimited' && userChannelId) {
+      if (room.queueLimitMode === 'once_in_queue') {
+        const isPlayingMine = room.currentVideo?.addedBy?.channelId === userChannelId;
+        const isInQueue = room.queue.some((q) => q.addedBy?.channelId === userChannelId);
+
+        if (isPlayingMine || isInQueue) {
+          return {
+            success: false,
+            error: '현재 대기열에 이미 신청하신 영상이 있습니다. (재생목록 내 1곡 제한)',
+          };
+        }
+      } else if (room.queueLimitMode === 'once_in_room') {
+        return {
+          success: false,
+          error: '이 방에서는 1인당 1회만 영상을 신청할 수 있습니다. (방당 1곡 제한)',
+        };
+      }
+    }
 
     const newQueueItem: VideoItem = {
       ...item,
@@ -405,7 +472,7 @@ export class RoomManager {
       room.queue.push(newQueueItem);
     }
 
-    return { reAddedVideo: newQueueItem, room };
+    return { success: true, reAddedVideo: newQueueItem, room };
   }
 
   /**

@@ -60,7 +60,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <History size={16} color="var(--brand-green)" />
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>
-            재생 히스토리 ({history.length})
+            재생 히스토리
           </span>
         </div>
 

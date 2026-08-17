@@ -117,24 +117,12 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <ListMusic size={18} color="var(--brand-green)" />
           <h3 style={{ fontSize: 15, fontWeight: 700 }}>대기열 & 영상 등록</h3>
-          <span
-            style={{
-              fontSize: 11,
-              backgroundColor: 'rgba(0, 255, 163, 0.15)',
-              color: 'var(--brand-green)',
-              padding: '2px 6px',
-              borderRadius: 'var(--radius-sm)',
-              fontWeight: 700,
-            }}
-          >
-            누구나 등록 가능
-          </span>
         </div>
 
         <form onSubmit={handleAddSubmit} style={{ display: 'flex', gap: 8 }}>
           <input
             type="text"
-            placeholder="유튜브 URL (일반/Shorts/youtu.be) 붙여넣기..."
+            placeholder="유튜브 URL 붙여넣기"
             value={urlInput}
             onChange={(e) => {
               setUrlInput(e.target.value);

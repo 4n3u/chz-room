@@ -60,6 +60,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     removeFromQueue,
     reorderQueue,
     toggleShuffle,
+    playNow,
     skipNext,
     updateRole,
   } = useSocket({ roomId, user });
@@ -355,6 +356,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 onRemoveFromQueue={removeFromQueue}
                 onReorderQueue={reorderQueue}
                 onToggleShuffle={toggleShuffle}
+                onPlayNow={playNow}
                 onSkipNext={skipNext}
               />
             ) : (

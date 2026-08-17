@@ -190,6 +190,16 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     [roomId, user]
   );
 
+  const playNow = useCallback(
+    (queueItemId: string) => {
+      if (!socketRef.current || !user) return;
+      socketRef.current.emit('queue:play_now', { roomId, queueItemId, user }, (res: any) => {
+        if (res?.error) setError(res.error);
+      });
+    },
+    [roomId, user]
+  );
+
   const skipNext = useCallback(() => {
     if (!socketRef.current || !user) return;
     socketRef.current.emit('queue:next', { roomId, user }, (res: any) => {
@@ -223,6 +233,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     removeFromQueue,
     reorderQueue,
     toggleShuffle,
+    playNow,
     skipNext,
     updateRole,
   };

@@ -257,7 +257,41 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       }
     );
 
-    // 6. Role Update (Promote / Demote Moderator) - Host only
+    // 8. Play Specific Video Immediately (Play Now) - Host & Mod only
+    socket.on(
+      'queue:play_now',
+      (
+        data: { roomId: string; queueItemId: string; user: ChzzkUser },
+        callback?: (res: { success?: boolean; error?: string }) => void
+      ) => {
+        const { roomId, queueItemId, user } = data;
+        if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          return callback?.({ error: '영상을 즉시 재생할 권한(어드민/매니저)이 없습니다.' });
+        }
+
+        const playRes = roomManager.playSpecificVideo(roomId, queueItemId);
+        if (!playRes) {
+          return callback?.({ error: '영상을 찾을 수 없거나 방이 존재하지 않습니다.' });
+        }
+
+        io.to(roomId).emit('video:sync', {
+          videoId: playRes.currentVideo?.videoId || null,
+          isPlaying: true,
+          currentTime: 0,
+          lastUpdatedTimestamp: Date.now(),
+          playbackRate: 1,
+        });
+
+        io.to(roomId).emit('queue:updated', {
+          currentVideo: playRes.currentVideo,
+          queue: playRes.room.queue,
+        });
+
+        callback?.({ success: true });
+      }
+    );
+
+    // 9. Role Update (Promote / Demote Moderator) - Host only
     socket.on(
       'role:update',
       (

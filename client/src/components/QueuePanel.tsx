@@ -20,6 +20,7 @@ interface QueuePanelProps {
   onRemoveFromQueue: (queueItemId: string) => void;
   onReorderQueue: (fromIndex: number, toIndex: number) => void;
   onToggleShuffle: (isShuffle: boolean) => void;
+  onPlayNow: (queueItemId: string) => void;
   onSkipNext: () => void;
 }
 
@@ -32,6 +33,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
   onRemoveFromQueue,
   onReorderQueue,
   onToggleShuffle,
+  onPlayNow,
   onSkipNext,
 }) => {
   const [urlInput, setUrlInput] = useState('');
@@ -390,18 +392,6 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                       </div>
                     )}
 
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: 'var(--text-dim)',
-                        width: 14,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {index + 1}
-                    </span>
-
                     <img
                       src={item.thumbnailUrl}
                       alt={item.title}
@@ -435,19 +425,41 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                       </span>
                     </div>
 
-                    {/* Remove Button (Host & Mod only) */}
+                    {/* Action Buttons (Admin & Manager only) */}
                     {canManage && (
-                      <button
-                        className="btn-icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemoveFromQueue(item.id);
-                        }}
-                        title="대기열에서 삭제"
-                        style={{ width: 28, height: 28, flexShrink: 0 }}
-                      >
-                        <Trash2 size={13} color="var(--accent-red)" />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        {/* Play Now Button (즉시 재생) */}
+                        <button
+                          className="btn-icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPlayNow(item.id);
+                          }}
+                          title="지금 바로 재생"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            color: 'var(--brand-green)',
+                            backgroundColor: 'rgba(0, 255, 163, 0.08)',
+                            borderColor: 'rgba(0, 255, 163, 0.25)',
+                          }}
+                        >
+                          <Play size={12} fill="var(--brand-green)" />
+                        </button>
+
+                        {/* Remove Button (대기열 삭제) */}
+                        <button
+                          className="btn-icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveFromQueue(item.id);
+                          }}
+                          title="대기열에서 삭제"
+                          style={{ width: 28, height: 28 }}
+                        >
+                          <Trash2 size={13} color="var(--accent-red)" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 );

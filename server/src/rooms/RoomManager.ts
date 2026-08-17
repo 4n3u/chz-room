@@ -321,6 +321,31 @@ export class RoomManager {
   }
 
   /**
+   * Play a specific video immediately from the queue
+   */
+  public playSpecificVideo(
+    roomId: string,
+    queueItemId: string
+  ): { currentVideo: VideoItem | null; room: RoomState } | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    const itemIndex = room.queue.findIndex((item) => item.id === queueItemId);
+    if (itemIndex === -1) return null;
+
+    const [targetVideo] = room.queue.splice(itemIndex, 1);
+    room.currentVideo = targetVideo;
+    room.playback = {
+      isPlaying: true,
+      currentTime: 0,
+      lastUpdatedTimestamp: Date.now(),
+      playbackRate: 1,
+    };
+
+    return { currentVideo: targetVideo, room };
+  }
+
+  /**
    * Promote or demote a user role (Host only)
    */
   public setRole(

@@ -275,6 +275,61 @@ describe('RoomManager Tests', () => {
     expect(resB2.success).toBe(false);
     expect(resB2.error).toContain('1회만 영상을 신청');
   });
+
+  it('should enforce duration, duplicate, request permission, max capacity, and shorts policies', () => {
+    const room = roomManager.createRoom({
+      title: '설정 테스트방',
+      hostUser,
+    });
+
+    const userViewer = { channelId: 'viewer-test', channelName: 'Viewer' };
+
+    // 1. Request Permission: admin_only
+    roomManager.updateRoomSettings(room.id, { requestPermission: 'admin_only' });
+    const v1 = { id: 'v1', videoId: 'vid-1', title: '1', thumbnailUrl: '', duration: 180, addedBy: userViewer };
+    const resViewer = roomManager.addToQueue(room.id, v1, false);
+    expect(resViewer.success).toBe(false);
+    expect(resViewer.error).toContain('어드민과 매니저만');
+
+    const resAdmin = roomManager.addToQueue(room.id, v1, true);
+    expect(resAdmin.success).toBe(true);
+
+    // Revert permission back to 'all'
+    roomManager.updateRoomSettings(room.id, { requestPermission: 'all' });
+
+    // 2. Max Queue Capacity
+    roomManager.updateRoomSettings(room.id, { maxQueueCapacity: 2 });
+    const v2 = { id: 'v2', videoId: 'vid-2', title: '2', thumbnailUrl: '', addedBy: userViewer };
+    const v3 = { id: 'v3', videoId: 'vid-3', title: '3', thumbnailUrl: '', addedBy: userViewer };
+    const v4 = { id: 'v4', videoId: 'vid-4', title: '4', thumbnailUrl: '', addedBy: userViewer };
+
+    roomManager.addToQueue(room.id, v2, false); // queue length = 1
+    roomManager.addToQueue(room.id, v3, false); // queue length = 2
+    const resCapOverflow = roomManager.addToQueue(room.id, v4, false);
+    expect(resCapOverflow.success).toBe(false);
+    expect(resCapOverflow.error).toContain('대기열이 꽉 찼습니다');
+
+    // 3. YouTube Shorts Restriction
+    roomManager.updateRoomSettings(room.id, { maxQueueCapacity: 0, allowShorts: false });
+    const vShorts = { id: 'vs', videoId: 'vid-shorts', title: 'Shorts', thumbnailUrl: '', isShorts: true, addedBy: userViewer };
+    const resShorts = roomManager.addToQueue(room.id, vShorts, false);
+    expect(resShorts.success).toBe(false);
+    expect(resShorts.error).toContain('YouTube Shorts');
+
+    // 4. Max Duration Limit (e.g. 5 min = 300s)
+    roomManager.updateRoomSettings(room.id, { allowShorts: true, maxDurationLimit: 300 });
+    const vLong = { id: 'vl', videoId: 'vid-long', title: 'Long', thumbnailUrl: '', duration: 600, addedBy: userViewer };
+    const resLong = roomManager.addToQueue(room.id, vLong, false);
+    expect(resLong.success).toBe(false);
+    expect(resLong.error).toContain('최대 5분 이하');
+
+    // 5. Duplicate Policy: prevent_in_queue
+    roomManager.updateRoomSettings(room.id, { maxDurationLimit: 0, duplicatePolicy: 'prevent_in_queue' });
+    const vDup = { id: 'vd', videoId: 'vid-2', title: 'Dup', thumbnailUrl: '', addedBy: userViewer };
+    const resDup = roomManager.addToQueue(room.id, vDup, false);
+    expect(resDup.success).toBe(false);
+    expect(resDup.error).toContain('중복 신청 금지');
+  });
 });
 
 

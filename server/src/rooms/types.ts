@@ -2,6 +2,26 @@ import { ChzzkUser } from '../auth/types';
 
 export type UserRole = 'host' | 'mod' | 'viewer';
 export type QueueLimitMode = 'unlimited' | 'once_in_queue' | 'once_in_room';
+export type DuplicatePolicy = 'allow' | 'prevent_in_queue' | 'prevent_in_history';
+export type RequestPermission = 'all' | 'admin_only';
+
+export interface RoomSettings {
+  queueLimitMode: QueueLimitMode; // 1인당 신청 제한
+  maxDurationLimit: number; // 최대 영상 길이 (초 단위, 0: 무제한)
+  duplicatePolicy: DuplicatePolicy; // 중복 영상 신청 방지
+  requestPermission: RequestPermission; // 신청 권한
+  maxQueueCapacity: number; // 대기열 최대 수용 개수 (0: 무제한)
+  allowShorts: boolean; // YouTube 쇼츠 허용 여부
+}
+
+export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
+  queueLimitMode: 'unlimited',
+  maxDurationLimit: 0,
+  duplicatePolicy: 'allow',
+  requestPermission: 'all',
+  maxQueueCapacity: 0,
+  allowShorts: true,
+};
 
 export interface VideoItem {
   id: string; // unique item id in playlist
@@ -16,6 +36,7 @@ export interface VideoItem {
   viewCount?: number; // 조회수 (숫자)
   viewCountFormatted?: string; // 조회수 (포맷된 문자열: 예 "18억회", "1,250회")
   playedAt?: number; // 재생된 시각 타임스탬프
+  isShorts?: boolean;
 }
 
 export interface RoomMember {
@@ -46,7 +67,8 @@ export interface RoomState {
   history: VideoItem[];
   members: RoomMember[];
   isShuffle: boolean;
-  queueLimitMode: QueueLimitMode;
+  settings: RoomSettings;
+  queueLimitMode?: QueueLimitMode;
 }
 
 export interface CreateRoomOptions {

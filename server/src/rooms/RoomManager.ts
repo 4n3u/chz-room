@@ -8,6 +8,8 @@ import {
   UserRole,
   VideoItem,
   QueueLimitMode,
+  RoomSettings,
+  DEFAULT_ROOM_SETTINGS,
 } from './types';
 import { ChzzkUser } from '../auth/types';
 
@@ -53,6 +55,7 @@ export class RoomManager {
       history: [],
       members: [],
       isShuffle: false,
+      settings: { ...DEFAULT_ROOM_SETTINGS },
       queueLimitMode: 'unlimited',
     };
 
@@ -240,11 +243,72 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room) return { success: false, error: '방을 찾을 수 없습니다.' };
 
-    // Check submission limits for viewers
-    if (!bypassLimit && room.queueLimitMode && room.queueLimitMode !== 'unlimited') {
+    const settings = room.settings || DEFAULT_ROOM_SETTINGS;
+
+    // Check submission policy rules for viewers (Non-admins)
+    if (!bypassLimit) {
       const userChannelId = video.addedBy?.channelId;
 
-      if (room.queueLimitMode === 'once_in_queue') {
+      // 1. Request Permission Check
+      if (settings.requestPermission === 'admin_only') {
+        return {
+          success: false,
+          error: '현재 어드민과 매니저만 영상을 신청할 수 있도록 설정된 방입니다.',
+        };
+      }
+
+      // 2. Max Queue Capacity Check
+      if (settings.maxQueueCapacity > 0 && room.queue.length >= settings.maxQueueCapacity) {
+        return {
+          success: false,
+          error: `대기열이 꽉 찼습니다 (최대 ${settings.maxQueueCapacity}곡). 이전 영상이 재생된 후 다시 신청해주세요.`,
+        };
+      }
+
+      // 3. Shorts Restriction Check
+      if (settings.allowShorts === false && (video.isShorts || (video.duration && video.duration <= 60))) {
+        return {
+          success: false,
+          error: '이 방에서는 YouTube Shorts(쇼츠) 영상을 신청할 수 없습니다.',
+        };
+      }
+
+      // 4. Max Duration Check
+      if (settings.maxDurationLimit > 0 && video.duration && video.duration > settings.maxDurationLimit) {
+        const maxMin = Math.floor(settings.maxDurationLimit / 60);
+        const vidMin = Math.floor(video.duration / 60);
+        const vidSec = video.duration % 60;
+        return {
+          success: false,
+          error: `이 방에서는 최대 ${maxMin}분 이하의 영상만 신청할 수 있습니다 (현재 영상: ${vidMin}분 ${vidSec}초).`,
+        };
+      }
+
+      // 5. Duplicate Video Prevention Check
+      if (settings.duplicatePolicy === 'prevent_in_queue') {
+        const isCurrentSame = room.currentVideo?.videoId === video.videoId;
+        const isInQueue = room.queue.some((item) => item.videoId === video.videoId);
+        if (isCurrentSame || isInQueue) {
+          return {
+            success: false,
+            error: '현재 재생 중이거나 대기열에 이미 동일한 영상이 등록되어 있습니다 (중복 신청 금지).',
+          };
+        }
+      } else if (settings.duplicatePolicy === 'prevent_in_history') {
+        const isCurrentSame = room.currentVideo?.videoId === video.videoId;
+        const isInQueue = room.queue.some((item) => item.videoId === video.videoId);
+        const isInHistory = room.history?.some((item) => item.videoId === video.videoId);
+        if (isCurrentSame || isInQueue || isInHistory) {
+          return {
+            success: false,
+            error: '이미 재생되었거나 대기열에 존재하는 중복 영상입니다.',
+          };
+        }
+      }
+
+      // 6. 1-Person Submission Limit Check
+      const limitMode = settings.queueLimitMode || room.queueLimitMode;
+      if (limitMode === 'once_in_queue') {
         const isPlayingMine = room.currentVideo?.addedBy?.channelId === userChannelId;
         const isInQueue = room.queue.some((item) => item.addedBy?.channelId === userChannelId);
 
@@ -254,7 +318,7 @@ export class RoomManager {
             error: '현재 대기열에 이미 신청하신 영상이 있습니다. (재생목록 내 1곡 제한)',
           };
         }
-      } else if (room.queueLimitMode === 'once_in_room') {
+      } else if (limitMode === 'once_in_room') {
         const isPlayingMine = room.currentVideo?.addedBy?.channelId === userChannelId;
         const isInQueue = room.queue.some((item) => item.addedBy?.channelId === userChannelId);
         const isInHistory = room.history?.some((item) => item.addedBy?.channelId === userChannelId);
@@ -285,14 +349,27 @@ export class RoomManager {
   }
 
   /**
-   * Set queue submission limit mode (Host & Mod only)
+   * Update comprehensive room settings (Host & Mod only)
    */
-  public setQueueLimitMode(roomId: string, mode: QueueLimitMode): RoomState | null {
+  public updateRoomSettings(roomId: string, newSettings: Partial<RoomSettings>): RoomState | null {
     const room = this.rooms.get(roomId);
     if (!room) return null;
 
-    room.queueLimitMode = mode;
+    room.settings = {
+      ...(room.settings || DEFAULT_ROOM_SETTINGS),
+      ...newSettings,
+    };
+    if (newSettings.queueLimitMode) {
+      room.queueLimitMode = newSettings.queueLimitMode;
+    }
     return room;
+  }
+
+  /**
+   * Set queue submission limit mode (Legacy shortcut)
+   */
+  public setQueueLimitMode(roomId: string, mode: QueueLimitMode): RoomState | null {
+    return this.updateRoomSettings(roomId, { queueLimitMode: mode });
   }
 
   /**
@@ -420,7 +497,7 @@ export class RoomManager {
   }
 
   /**
-   * Re-add a video from history to queue with limit check
+   * Re-add a video from history to queue with full settings check
    */
   public reAddFromHistory(
     roomId: string,
@@ -434,45 +511,18 @@ export class RoomManager {
     const item = room.history?.find((h) => h.id === historyItemId);
     if (!item) return { success: false, error: '히스토리 영상을 찾을 수 없습니다.' };
 
-    // Check submission limits
-    if (!bypassLimit && room.queueLimitMode && room.queueLimitMode !== 'unlimited' && userChannelId) {
-      if (room.queueLimitMode === 'once_in_queue') {
-        const isPlayingMine = room.currentVideo?.addedBy?.channelId === userChannelId;
-        const isInQueue = room.queue.some((q) => q.addedBy?.channelId === userChannelId);
-
-        if (isPlayingMine || isInQueue) {
-          return {
-            success: false,
-            error: '현재 대기열에 이미 신청하신 영상이 있습니다. (재생목록 내 1곡 제한)',
-          };
-        }
-      } else if (room.queueLimitMode === 'once_in_room') {
-        return {
-          success: false,
-          error: '이 방에서는 1인당 1회만 영상을 신청할 수 있습니다. (방당 1곡 제한)',
-        };
-      }
-    }
-
     const newQueueItem: VideoItem = {
       ...item,
       id: crypto.randomBytes(4).toString('hex'),
       playedAt: undefined,
     };
 
-    if (!room.currentVideo) {
-      room.currentVideo = newQueueItem;
-      room.playback = {
-        isPlaying: true,
-        currentTime: 0,
-        lastUpdatedTimestamp: Date.now(),
-        playbackRate: 1,
-      };
-    } else {
-      room.queue.push(newQueueItem);
+    const addRes = this.addToQueue(roomId, newQueueItem, bypassLimit);
+    if (!addRes.success || !addRes.room) {
+      return { success: false, error: addRes.error || '대기열 추가에 실패했습니다.' };
     }
 
-    return { success: true, reAddedVideo: newQueueItem, room };
+    return { success: true, reAddedVideo: newQueueItem, room: addRes.room };
   }
 
   /**

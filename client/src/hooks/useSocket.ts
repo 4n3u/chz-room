@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { ChzzkUser, PlaybackState, RoomMember, RoomState, UserRole, VideoItem, QueueLimitMode } from '../types';
+import {
+  ChzzkUser,
+  PlaybackState,
+  RoomMember,
+  RoomState,
+  UserRole,
+  VideoItem,
+  QueueLimitMode,
+  RoomSettings,
+  DEFAULT_ROOM_SETTINGS,
+} from '../types';
 
 interface UseSocketProps {
   roomId: string;
@@ -17,6 +27,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
   const [queue, setQueue] = useState<VideoItem[]>([]);
   const [history, setHistory] = useState<VideoItem[]>([]);
   const [isShuffle, setIsShuffle] = useState(false);
+  const [settings, setSettings] = useState<RoomSettings>(DEFAULT_ROOM_SETTINGS);
   const [queueLimitMode, setQueueLimitMode] = useState<QueueLimitMode>('unlimited');
   const [playback, setPlayback] = useState<PlaybackState>({
     isPlaying: false,
@@ -54,7 +65,12 @@ export function useSocket({ roomId, user }: UseSocketProps) {
             setHistory(res.room.history || []);
             setPlayback(res.room.playback);
             setIsShuffle(!!res.room.isShuffle);
-            setQueueLimitMode(res.room.queueLimitMode || 'unlimited');
+            const roomSettings = res.room.settings || {
+              ...DEFAULT_ROOM_SETTINGS,
+              queueLimitMode: res.room.queueLimitMode || 'unlimited',
+            };
+            setSettings(roomSettings);
+            setQueueLimitMode(roomSettings.queueLimitMode || 'unlimited');
           } else {
             setError(res.error || '방에 입장하지 못했습니다.');
           }
@@ -85,8 +101,14 @@ export function useSocket({ roomId, user }: UseSocketProps) {
       setIsShuffle(data.isShuffle);
     });
 
-    socket.on('room:settings_updated', (data: { queueLimitMode: QueueLimitMode }) => {
-      setQueueLimitMode(data.queueLimitMode);
+    socket.on('room:settings_updated', (data: { settings?: RoomSettings; queueLimitMode?: QueueLimitMode }) => {
+      if (data.settings) {
+        setSettings(data.settings);
+        setQueueLimitMode(data.settings.queueLimitMode);
+      } else if (data.queueLimitMode) {
+        setQueueLimitMode(data.queueLimitMode);
+        setSettings((prev) => ({ ...prev, queueLimitMode: data.queueLimitMode! }));
+      }
     });
 
     socket.on('members:updated', (newMembers: RoomMember[]) => {
@@ -139,10 +161,11 @@ export function useSocket({ roomId, user }: UseSocketProps) {
   );
 
   const addToQueue = useCallback(
-    (url: string): Promise<boolean> => {
+    async (url: string): Promise<boolean> => {
+      if (!socketRef.current || !user) return false;
+
       return new Promise((resolve) => {
-        if (!socketRef.current || !user) return resolve(false);
-        socketRef.current.emit(
+        socketRef.current?.emit(
           'queue:add',
           { roomId, url, user },
           (res: { success?: boolean; error?: string }) => {
@@ -234,18 +257,25 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     });
   }, [roomId, user]);
 
-  const updateQueueLimitMode = useCallback(
-    (mode: QueueLimitMode) => {
+  const updateRoomSettings = useCallback(
+    (newSettings: Partial<RoomSettings>) => {
       if (!socketRef.current || !user) return;
       socketRef.current.emit(
         'room:settings_update',
-        { roomId, queueLimitMode: mode, user },
+        { roomId, settings: newSettings, user },
         (res: any) => {
           if (res?.error) setError(res.error);
         }
       );
     },
     [roomId, user]
+  );
+
+  const updateQueueLimitMode = useCallback(
+    (mode: QueueLimitMode) => {
+      updateRoomSettings({ queueLimitMode: mode });
+    },
+    [updateRoomSettings]
   );
 
   const updateRole = useCallback(
@@ -267,6 +297,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     queue,
     history,
     isShuffle,
+    settings,
     queueLimitMode,
     playback,
     error,
@@ -281,6 +312,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     reAddFromHistory,
     playHistoryNow,
     clearHistory,
+    updateRoomSettings,
     updateQueueLimitMode,
     updateRole,
   };

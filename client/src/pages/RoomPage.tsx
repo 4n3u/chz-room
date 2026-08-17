@@ -62,7 +62,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     queue,
     history,
     isShuffle,
-    queueLimitMode,
+    settings,
     playback,
     error,
     clearError,
@@ -76,7 +76,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     reAddFromHistory,
     playHistoryNow,
     clearHistory,
-    updateQueueLimitMode,
+    updateRoomSettings,
     updateRole,
   } = useSocket({ roomId, user });
 
@@ -490,8 +490,8 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
       <RoomSettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
-        currentMode={queueLimitMode}
-        onUpdateMode={updateQueueLimitMode}
+        settings={settings}
+        onUpdateSettings={updateRoomSettings}
       />
 
       <MockLoginModal isOpen={showMockLogin} onClose={() => setShowMockLogin(false)} />

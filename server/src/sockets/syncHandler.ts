@@ -1,8 +1,8 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { RoomManager } from '../rooms/RoomManager';
 import { ChzzkUser } from '../auth/types';
-import { fetchYouTubeMetadata, parseYouTubeId } from '../utils/youtube';
-import { UserRole, VideoItem, QueueLimitMode } from '../rooms/types';
+import { fetchYouTubeMetadata, parseYouTubeId, isShortsUrl } from '../utils/youtube';
+import { UserRole, VideoItem, QueueLimitMode, RoomSettings } from '../rooms/types';
 import crypto from 'crypto';
 
 export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManager) {
@@ -103,17 +103,20 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         }
 
         const metadata = await fetchYouTubeMetadata(videoId);
+        const isShorts = isShortsUrl(url) || !!metadata.isShorts;
         const videoItem: VideoItem = {
           id: `item-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`,
           videoId,
           title: metadata.title,
           thumbnailUrl: metadata.thumbnailUrl,
+          duration: metadata.duration,
           addedBy: user,
           authorName: metadata.authorName,
           authorUrl: metadata.authorUrl,
           uploadDate: metadata.uploadDate,
           viewCount: metadata.viewCount,
           viewCountFormatted: metadata.viewCountFormatted,
+          isShorts,
         };
 
         const currentRoomBefore = roomManager.getRoom(roomId);
@@ -425,28 +428,35 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       }
     );
 
-    // 13. Room Settings Update (Queue Limit Mode) - Host & Mod only
+    // 13. Room Settings Update (Queue Limit, Duration, Duplicate, Permission, Capacity, Shorts) - Host & Mod only
     socket.on(
       'room:settings_update',
       (
-        data: { roomId: string; queueLimitMode: QueueLimitMode; user: ChzzkUser },
-        callback?: (res: { success?: boolean; queueLimitMode?: QueueLimitMode; error?: string }) => void
+        data: {
+          roomId: string;
+          settings?: Partial<RoomSettings>;
+          queueLimitMode?: QueueLimitMode;
+          user: ChzzkUser;
+        },
+        callback?: (res: { success?: boolean; settings?: RoomSettings; error?: string }) => void
       ) => {
-        const { roomId, queueLimitMode, user } = data;
+        const { roomId, settings, queueLimitMode, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
           return callback?.({ error: '방 설정을 변경할 권한(어드민/매니저)이 없습니다.' });
         }
 
-        const updatedRoom = roomManager.setQueueLimitMode(roomId, queueLimitMode);
+        const newSettings: Partial<RoomSettings> = settings || (queueLimitMode ? { queueLimitMode } : {});
+        const updatedRoom = roomManager.updateRoomSettings(roomId, newSettings);
         if (!updatedRoom) {
           return callback?.({ error: '방을 찾을 수 없습니다.' });
         }
 
         io.to(roomId).emit('room:settings_updated', {
-          queueLimitMode: updatedRoom.queueLimitMode,
+          settings: updatedRoom.settings,
+          queueLimitMode: updatedRoom.settings.queueLimitMode,
         });
 
-        callback?.({ success: true, queueLimitMode: updatedRoom.queueLimitMode });
+        callback?.({ success: true, settings: updatedRoom.settings });
       }
     );
 

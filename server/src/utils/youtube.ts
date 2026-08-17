@@ -3,11 +3,21 @@ import axios from 'axios';
 export interface YouTubeVideoMetadata {
   title: string;
   thumbnailUrl: string;
+  duration?: number;
   authorName?: string;
   authorUrl?: string;
   uploadDate?: string;
   viewCount?: number;
   viewCountFormatted?: string;
+  isShorts?: boolean;
+}
+
+/**
+ * Checks if a given input URL is explicitly a YouTube Shorts URL
+ */
+export function isShortsUrl(input: string): boolean {
+  if (!input || typeof input !== 'string') return false;
+  return input.includes('/shorts/');
 }
 
 /**
@@ -87,11 +97,13 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVide
 
   let title = fallbackTitle;
   let thumbnailUrl = fallbackThumbnail;
+  let duration: number | undefined = undefined;
   let authorName: string | undefined = undefined;
   let authorUrl: string | undefined = undefined;
   let uploadDate: string | undefined = undefined;
   let viewCount: number | undefined = undefined;
   let viewCountFormatted: string | undefined = undefined;
+  let isShorts: boolean = false;
 
   // 1. Fetch oEmbed metadata (Title, Author Name, Author URL, Thumbnail)
   try {
@@ -107,7 +119,7 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVide
     // Continue with fallback
   }
 
-  // 2. Fetch HTML page to scrape uploadDate and viewCount
+  // 2. Fetch HTML page to scrape uploadDate, duration, and viewCount
   try {
     const pageRes = await axios.get(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: {
@@ -123,6 +135,12 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVide
     const dateMatch = html.match(/itemprop=["']datePublished["']\s+content=["']([^"']+)["']/i);
     if (dateMatch) {
       uploadDate = dateMatch[1];
+    }
+
+    // lengthSeconds
+    const lengthMatch = html.match(/"lengthSeconds":\s*"(\d+)"/);
+    if (lengthMatch) {
+      duration = parseInt(lengthMatch[1], 10);
     }
 
     // viewCount (raw number)
@@ -148,11 +166,13 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVide
   const result: YouTubeVideoMetadata = {
     title,
     thumbnailUrl,
+    duration,
     authorName,
     authorUrl,
     uploadDate,
     viewCount,
     viewCountFormatted,
+    isShorts,
   };
 
   metadataCache.set(videoId, { data: result, timestamp: Date.now() });

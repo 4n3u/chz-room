@@ -89,7 +89,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId, onLeaveRoom }) => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {room?.title || '치지직 시청 룸'}
+                {room?.title || '치즈룸'}
               </h2>
 
               {/* My Role Badge */}

@@ -34,23 +34,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
         >
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
+              width: 34,
+              height: 34,
+              borderRadius: 10,
               background: 'linear-gradient(135deg, #00ffa3, #00b374)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 900,
               color: '#000000',
-              fontSize: 17,
+              fontSize: 16,
+              boxShadow: '0 0 12px rgba(0, 255, 163, 0.3)',
             }}
           >
-            CH
+            🧀
           </div>
           <div className="chzzk-brand">
-            <span>CHZZK</span>
-            <span className="neon-tag">SYNC-TUBE</span>
+            <span style={{ letterSpacing: '-0.5px' }}>CHZ-ROOM</span>
+            <span className="neon-tag">치즈룸</span>
           </div>
         </div>
 

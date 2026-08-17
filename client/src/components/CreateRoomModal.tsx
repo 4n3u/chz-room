@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { X, Plus, Lock, Globe } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -16,8 +16,6 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +29,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
     }
 
     if (!user) {
-      setError('방을 생성하려면 먼저 치지직 로그인이 필요합니다.');
+      setError('방을 생성하려면 먼저 로그인이 필요합니다.');
       return;
     }
 
@@ -44,8 +42,6 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
         {
           title: title.trim(),
           hostUser: user,
-          isPrivate,
-          password: isPrivate && password ? password : undefined,
         },
         { withCredentials: true }
       );
@@ -67,7 +63,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Plus size={20} color="var(--brand-green)" />
-            <h3 style={{ fontSize: 18 }}>새로운 시청 룸 만들기</h3>
+            <h3 style={{ fontSize: 18 }}>새 치즈룸 만들기</h3>
           </div>
           <button className="btn-icon" onClick={onClose} aria-label="Close">
             <X size={18} />
@@ -91,67 +87,30 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
-              방 제목 *
+              치즈룸 이름 *
             </label>
             <input
               type="text"
-              placeholder="예: 다같이 침착맨 삼국지 몰아보기"
+              placeholder="예: 치즈들과 함께하는 유튜브 감상회"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               style={{ width: '100%' }}
               required
               autoFocus
             />
+            <span style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginTop: 6 }}>
+              방을 생성하면 전용 링크가 발급되며, 링크를 공유받은 누구나 참여할 수 있습니다.
+            </span>
           </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 14,
-                cursor: 'pointer',
-                userSelect: 'none',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-                style={{ width: 16, height: 16, accentColor: 'var(--brand-green)' }}
-              />
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {isPrivate ? <Lock size={15} color="var(--accent-gold)" /> : <Globe size={15} color="var(--text-muted)" />}
-                비공개 방 (초대 링크 또는 비밀번호로만 입장)
-              </span>
-            </label>
-          </div>
-
-          {isPrivate && (
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                비밀번호 (선택)
-              </label>
-              <input
-                type="password"
-                placeholder="비밀번호 설정 시 접속자가 입력해야 합니다"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%' }}
-              />
-            </div>
-          )}
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
             <button type="button" className="btn-secondary" onClick={onClose}>
               취소
             </button>
             <button type="submit" className="btn-primary" disabled={loading || !title.trim()}>
-              {loading ? '생성 중...' : '방 만들기'}
+              {loading ? '생성 중...' : '치즈룸 생성하기'}
             </button>
           </div>
         </form>

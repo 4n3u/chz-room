@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { CreateRoomModal } from '../components/CreateRoomModal';
 import { MockLoginModal } from '../components/MockLoginModal';
-import { PublicRoomSummary } from '../types';
 import {
   Plus,
-  Users,
-  Play,
+  Link,
+  Share2,
   Tv,
-  Sparkles,
-  RefreshCw,
-  Search,
   ArrowRight,
+  Radio,
 } from 'lucide-react';
 
 interface LobbyPageProps {
@@ -20,59 +16,64 @@ interface LobbyPageProps {
 }
 
 export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
-  const { user, loginWithChzzk } = useAuth();
-  const [rooms, setRooms] = useState<PublicRoomSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { user } = useAuth();
+  const [roomTitle, setRoomTitle] = useState('');
+  const [roomCodeInput, setRoomCodeInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showMockLoginModal, setShowMockLoginModal] = useState(false);
 
-  const fetchRooms = async () => {
+  const handleCreateRoom = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!user) {
+      setShowMockLoginModal(true);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
+
+    const title = roomTitle.trim() || `${user.channelName}님의 치즈룸`;
+
     try {
-      const res = await axios.get('/api/rooms');
-      setRooms(res.data?.rooms || []);
-    } catch (err) {
-      console.error('Failed to fetch rooms:', err);
+      const res = await axios.post(
+        '/api/rooms',
+        {
+          title,
+          hostUser: user,
+        },
+        { withCredentials: true }
+      );
+
+      if (res.data?.success && res.data?.room) {
+        onJoinRoom(res.data.room.id);
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error || '방 생성 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchRooms();
-    const interval = setInterval(fetchRooms, 6000);
-    return () => clearInterval(interval);
-  }, []);
+  const handleJoinByCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roomCodeInput.trim()) return;
 
-  const handleCreateRoomClick = () => {
-    if (!user) {
-      setShowMockLoginModal(true);
-    } else {
-      setShowCreateModal(true);
+    let code = roomCodeInput.trim();
+    // If full URL was pasted, extract room ID
+    if (code.includes('/room/')) {
+      const parts = code.split('/room/');
+      code = parts[1].split('?')[0].split('#')[0];
     }
+
+    onJoinRoom(code);
   };
 
-  const filteredRooms = rooms.filter((r) =>
-    r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.hostName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '40px 24px' }}>
-      {/* Hero Section */}
-      <section
-        style={{
-          background: 'linear-gradient(180deg, rgba(0, 255, 163, 0.08) 0%, rgba(20, 21, 23, 0) 100%)',
-          borderRadius: 'var(--radius-xl)',
-          border: '1px solid var(--border-subtle)',
-          padding: '48px 32px',
-          textAlign: 'center',
-          marginBottom: 48,
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '60px 24px' }}>
+      {/* Hero Header */}
+      <section style={{ textAlign: 'center', marginBottom: 48 }}>
         <div
           style={{
             display: 'inline-flex',
@@ -81,339 +82,274 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
             backgroundColor: 'rgba(0, 255, 163, 0.12)',
             border: '1px solid rgba(0, 255, 163, 0.3)',
             borderRadius: 'var(--radius-full)',
-            padding: '4px 12px',
-            fontSize: 12,
+            padding: '5px 14px',
+            fontSize: 13,
             fontWeight: 700,
             color: 'var(--brand-green)',
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
-          <Sparkles size={14} />
-          <span>CHZZK X YOUTUBE SYNC</span>
+          <span>🧀</span>
+          <span>CHZ-ROOM • 치즈룸</span>
         </div>
 
         <h1
           style={{
-            fontSize: 'clamp(28px, 4vw, 42px)',
+            fontSize: 'clamp(32px, 5vw, 52px)',
             fontWeight: 900,
-            letterSpacing: '-1px',
-            marginBottom: 16,
+            letterSpacing: '-1.5px',
+            marginBottom: 18,
             color: '#ffffff',
+            lineHeight: 1.15,
           }}
         >
-          치지직 유저들과 <span style={{ color: 'var(--brand-green)' }}>실시간 유튜브</span> 함께보기
+          치지직 유저들을 위한 <br />
+          <span style={{ color: 'var(--brand-green)' }}>실시간 유튜브 동시 시청</span>
         </h1>
 
         <p
           style={{
-            fontSize: 'clamp(14px, 1.8vw, 16px)',
+            fontSize: 'clamp(15px, 2vw, 17px)',
             color: 'var(--text-muted)',
-            maxWidth: 620,
-            margin: '0 auto 32px auto',
+            maxWidth: 580,
+            margin: '0 auto',
             lineHeight: 1.6,
           }}
         >
-          치지직 계정으로 방을 만들고, 친구 및 시청자들과 유튜브 링크를 등록해 완벽하게 동기화된 화면으로 함께 감상하세요.
+          방을 만들면 고유 링크가 생성됩니다. 링크를 공유받은 유저들과 유튜브 영상을 등록하고 완벽하게 동기화된 화면으로 함께 시청하세요.
         </p>
-
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            className="btn-primary"
-            onClick={handleCreateRoomClick}
-            style={{ fontSize: 16, padding: '14px 28px' }}
-          >
-            <Plus size={20} />
-            <span>새 시청 방 만들기</span>
-          </button>
-          {!user && (
-            <button
-              className="btn-secondary"
-              onClick={loginWithChzzk}
-              style={{ fontSize: 16, padding: '14px 24px' }}
-            >
-              <span>치지직 계정 연동</span>
-            </button>
-          )}
-        </div>
       </section>
 
-      {/* Rooms Explorer Header */}
+      {/* Main Action Card: Create Room Form */}
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 16,
-          marginBottom: 24,
+          backgroundColor: 'var(--surface-dark)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-xl)',
+          padding: '36px 32px',
+          boxShadow: 'var(--shadow-card)',
+          marginBottom: 48,
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Tv size={22} color="var(--brand-green)" />
-          <h2 style={{ fontSize: 22 }}>실시간 공개 방</h2>
-          <span
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: 'linear-gradient(90deg, #00ffa3, #00b374)',
+          }}
+        />
+
+        {error && (
+          <div
             style={{
-              backgroundColor: 'var(--surface-dark-alt)',
-              color: 'var(--text-secondary)',
-              fontSize: 12,
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              border: '1px solid var(--border-color)',
+              padding: '12px 16px',
+              backgroundColor: 'rgba(255, 75, 75, 0.15)',
+              border: '1px solid rgba(255, 75, 75, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--accent-red)',
+              fontSize: 13,
+              marginBottom: 20,
             }}
           >
-            {rooms.length}개
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleCreateRoom}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 15,
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              marginBottom: 10,
+            }}
+          >
+            새 치즈룸 이름
+          </label>
+
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder={user ? `예: ${user.channelName}님의 유튜브 시청방` : '방 이름을 입력하세요 (미입력 시 자동생성)'}
+              value={roomTitle}
+              onChange={(e) => setRoomTitle(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 260,
+                fontSize: 15,
+                padding: '14px 18px',
+                backgroundColor: 'var(--surface-dark-alt)',
+              }}
+            />
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={loading}
+              style={{ fontSize: 16, padding: '14px 28px' }}
+            >
+              <Plus size={20} />
+              <span>{loading ? '생성 중...' : '치즈룸 만들기'}</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Or Join with Link / Code */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            margin: '28px 0 20px 0',
+          }}
+        >
+          <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border-subtle)' }} />
+          <span style={{ fontSize: 12, color: 'var(--text-dim)', fontWeight: 600 }}>
+            또는 기존 링크로 입장
           </span>
+          <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border-subtle)' }} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Search Input */}
-          <div style={{ position: 'relative', width: 240 }}>
-            <Search
+        <form onSubmit={handleJoinByCode} style={{ display: 'flex', gap: 10 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Link
               size={16}
-              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }}
+              style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }}
             />
             <input
               type="text"
-              placeholder="방 제목 또는 방장 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: 36, width: '100%', fontSize: 13 }}
+              placeholder="방 코드 또는 전체 초대 URL 붙여넣기..."
+              value={roomCodeInput}
+              onChange={(e) => setRoomCodeInput(e.target.value)}
+              style={{
+                width: '100%',
+                paddingLeft: 38,
+                fontSize: 14,
+                backgroundColor: 'var(--surface-dark-alt)',
+              }}
             />
           </div>
-
           <button
-            className="btn-icon"
-            onClick={fetchRooms}
-            title="새로고침"
-            style={{ width: 40, height: 40 }}
+            type="submit"
+            className="btn-secondary"
+            disabled={!roomCodeInput.trim()}
+            style={{ fontSize: 14, padding: '10px 20px' }}
           >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <span>입장하기</span>
+            <ArrowRight size={16} />
           </button>
-        </div>
+        </form>
       </div>
 
-      {/* Rooms Grid */}
-      {filteredRooms.length === 0 ? (
+      {/* How it works Section (Sync-tube style) */}
+      <section>
+        <h3 style={{ fontSize: 18, fontWeight: 800, textAlign: 'center', marginBottom: 24, color: 'var(--text-secondary)' }}>
+          치즈룸 이용 방법
+        </h3>
+
         <div
           style={{
-            backgroundColor: 'var(--surface-dark)',
-            border: '1px dashed var(--border-color)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '60px 20px',
-            textAlign: 'center',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 20,
           }}
         >
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              backgroundColor: 'var(--surface-dark-alt)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px auto',
+              backgroundColor: 'var(--surface-dark)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '24px 20px',
             }}
           >
-            <Play size={24} color="var(--text-muted)" />
-          </div>
-          <h3 style={{ fontSize: 18, color: 'var(--text-secondary)', marginBottom: 8 }}>
-            현재 진행 중인 방이 없습니다
-          </h3>
-          <p style={{ fontSize: 14, color: 'var(--text-dim)', marginBottom: 20 }}>
-            새로운 방을 생성하고 유튜브 영상을 등록해 가장 먼저 시청을 시작해보세요!
-          </p>
-          <button className="btn-primary" onClick={handleCreateRoomClick}>
-            <Plus size={16} />
-            <span>첫 번째 방 만들기</span>
-          </button>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 20,
-          }}
-        >
-          {filteredRooms.map((room) => (
             <div
-              key={room.id}
-              onClick={() => onJoinRoom(room.id)}
               style={{
-                backgroundColor: 'var(--surface-dark)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-lg)',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                transition: 'transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--brand-green)';
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 255, 163, 0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(0, 255, 163, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
               }}
             >
-              {/* Thumbnail preview */}
-              <div
-                style={{
-                  height: 180,
-                  backgroundColor: 'var(--surface-dark-alt)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {room.currentVideoThumbnail ? (
-                  <img
-                    src={room.currentVideoThumbnail}
-                    alt={room.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <div style={{ textAlign: 'center', color: 'var(--text-dim)' }}>
-                    <Play size={36} style={{ marginBottom: 6, opacity: 0.4 }} />
-                    <p style={{ fontSize: 12 }}>재생 준비 중</p>
-                  </div>
-                )}
-
-                {/* Viewers badge overlay */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 10,
-                    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                    backdropFilter: 'blur(4px)',
-                    color: 'var(--brand-green)',
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    border: '1px solid rgba(0, 255, 163, 0.2)',
-                  }}
-                >
-                  <Users size={13} />
-                  <span>{room.memberCount}명 시청 중</span>
-                </div>
-              </div>
-
-              {/* Card Body */}
-              <div style={{ padding: 18 }}>
-                <h3
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    marginBottom: 8,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {room.title}
-                </h3>
-
-                {room.currentVideoTitle && (
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: 'var(--text-muted)',
-                      marginBottom: 14,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <Play size={12} color="var(--brand-green)" />
-                    <span>{room.currentVideoTitle}</span>
-                  </p>
-                )}
-
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderTop: '1px solid var(--surface-dark-subtle)',
-                    paddingTop: 12,
-                    marginTop: 4,
-                  }}
-                >
-                  {/* Host info */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {room.hostAvatar ? (
-                      <img
-                        src={room.hostAvatar}
-                        alt={room.hostName}
-                        style={{ width: 22, height: 22, borderRadius: '50%' }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          backgroundColor: 'var(--surface-dark-alt)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 11,
-                          fontWeight: 700,
-                        }}
-                      >
-                        👑
-                      </div>
-                    )}
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      {room.hostName}
-                    </span>
-                  </div>
-
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--brand-green)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    입장하기 <ArrowRight size={14} />
-                  </span>
-                </div>
-              </div>
+              <Tv size={22} color="var(--brand-green)" />
             </div>
-          ))}
-        </div>
-      )}
+            <h4 style={{ fontSize: 16, marginBottom: 8 }}>1. 치즈룸 생성</h4>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              방 이름을 입력하고 버튼을 클릭하면 고유한 방 주소가 즉시 발급됩니다.
+            </p>
+          </div>
 
-      {/* Modals */}
-      <CreateRoomModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onRoomCreated={(roomId) => onJoinRoom(roomId)}
-      />
+          <div
+            style={{
+              backgroundColor: 'var(--surface-dark)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '24px 20px',
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(58, 134, 255, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Share2 size={22} color="var(--accent-blue)" />
+            </div>
+            <h4 style={{ fontSize: 16, marginBottom: 8 }}>2. 초대 링크 공유</h4>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              발급된 고유 URL을 복사하여 다른 치지직 유저들에게 공유하세요.
+            </p>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: 'var(--surface-dark)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '24px 20px',
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(255, 190, 11, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Radio size={22} color="var(--accent-gold)" />
+            </div>
+            <h4 style={{ fontSize: 16, marginBottom: 8 }}>3. 실시간 동시 시청</h4>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              누구나 유튜브 URL을 대기열에 등록하고, 관리자가 영상을 넘기며 완벽한 싱크로 시청합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <MockLoginModal
         isOpen={showMockLoginModal}
         onClose={() => {
           setShowMockLoginModal(false);
-          setShowCreateModal(true);
+          handleCreateRoom();
         }}
       />
     </div>

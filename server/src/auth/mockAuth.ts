@@ -24,17 +24,21 @@ router.post('/mock-login', (req: Request, res: Response) => {
 
   res.cookie('chzzk_session', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return res.json({ success: true, user });
+  return res.json({ success: true, user, token });
 });
 
-// Current Logged-in User Profile
+// Current Logged-in User Profile (supports cookie and Authorization header)
 router.get('/me', (req: Request, res: Response) => {
-  const token = req.cookies?.chzzk_session;
+  let token = req.cookies?.chzzk_session;
+
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.slice(7).trim();
+  }
 
   if (!token) {
     return res.json({ user: null });

@@ -27,6 +27,8 @@ router.get('/login', (req: Request, res: Response) => {
     CHZZK_CLIENT_ID
   )}&redirectUri=${encodeURIComponent(CHZZK_REDIRECT_URI)}&state=${encodeURIComponent(state)}`;
 
+  console.log(`[Chzzk OAuth] Login initiated. Redirecting to Chzzk: ${authUrl}`);
+
   // Return JSON if requested by API, or redirect if directly accessed
   if (req.headers.accept?.includes('application/json')) {
     return res.json({ url: authUrl });
@@ -38,17 +40,21 @@ router.get('/login', (req: Request, res: Response) => {
 router.get('/callback', async (req: Request, res: Response) => {
   const { code, state, error, error_description } = req.query;
 
+  console.log('[Chzzk OAuth] Callback received:', { code: code ? '***' : null, state, error, error_description });
+
   if (error) {
-    console.error('Chzzk OAuth Error:', error, error_description);
+    console.error('[Chzzk OAuth] Error from Chzzk:', error, error_description);
     return res.redirect(`${CLIENT_URL}/?error=${encodeURIComponent(String(error_description || error))}`);
   }
 
   if (!code || !state) {
+    console.error('[Chzzk OAuth] Missing code or state');
     return res.redirect(`${CLIENT_URL}/?error=missing_code_or_state`);
   }
 
   try {
     // 1. Request Access Token
+    console.log('[Chzzk OAuth] Exchanging code for access token...');
     const tokenRes = await axios.post(
       'https://openapi.chzzk.naver.com/auth/v1/token',
       {
@@ -68,13 +74,20 @@ router.get('/callback', async (req: Request, res: Response) => {
     );
 
     const tokenData = tokenRes.data?.content || tokenRes.data;
+    console.log('[Chzzk OAuth] Token response received:', {
+      tokenType: tokenData?.tokenType,
+      expiresIn: tokenData?.expiresIn,
+      hasAccessToken: !!tokenData?.accessToken,
+    });
+
     const accessToken = tokenData?.accessToken;
 
     if (!accessToken) {
-      throw new Error('Failed to obtain accessToken from Chzzk');
+      throw new Error(`Failed to obtain accessToken from Chzzk: ${JSON.stringify(tokenRes.data)}`);
     }
 
     // 2. Fetch User Me Info
+    console.log('[Chzzk OAuth] Fetching user profile (/open/v1/users/me)...');
     const userMeRes = await axios.get('https://openapi.chzzk.naver.com/open/v1/users/me', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -86,6 +99,8 @@ router.get('/callback', async (req: Request, res: Response) => {
     let channelName = userMe?.channelName || '치지직 유저';
     let channelImageUrl: string | undefined = undefined;
     let verifiedMark = false;
+
+    console.log('[Chzzk OAuth] User Me info:', { channelId, channelName });
 
     // 3. Fetch Channel Detail Info (Avatar, Verified status)
     if (channelId) {
@@ -109,7 +124,7 @@ router.get('/callback', async (req: Request, res: Response) => {
           verifiedMark = !!channelData.verifiedMark;
         }
       } catch (channelErr) {
-        console.warn('Could not fetch channel details, continuing with basic profile:', channelErr);
+        console.warn('[Chzzk OAuth] Could not fetch channel details, continuing with basic profile:', channelErr);
       }
     }
 
@@ -120,12 +135,13 @@ router.get('/callback', async (req: Request, res: Response) => {
       verifiedMark,
     };
 
-    // 4. Issue JWT Session Cookie
+    // 4. Issue JWT Session
     const token = jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
 
+    // Set cookie
     res.cookie('chzzk_session', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // allow http in localhost dev
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -133,10 +149,14 @@ router.get('/callback', async (req: Request, res: Response) => {
     // Clear oauth state cookie
     res.clearCookie('chzzk_oauth_state');
 
-    return res.redirect(`${CLIENT_URL}/?login=success`);
+    console.log(`[Chzzk OAuth] Login successful for user ${user.channelName} (${user.channelId}). Redirecting to client...`);
+
+    // Redirect to frontend with token in query param for robust cross-port sync
+    return res.redirect(`${CLIENT_URL}/?token=${encodeURIComponent(token)}&login=success`);
   } catch (err: any) {
-    console.error('Chzzk OAuth callback failed:', err?.response?.data || err?.message || err);
-    return res.redirect(`${CLIENT_URL}/?error=${encodeURIComponent(err?.message || 'auth_failed')}`);
+    const errorDetails = err?.response?.data || err?.message || err;
+    console.error('[Chzzk OAuth] Callback failed:', errorDetails);
+    return res.redirect(`${CLIENT_URL}/?error=${encodeURIComponent(JSON.stringify(errorDetails))}`);
   }
 });
 

@@ -9,8 +9,6 @@ import {
   Shuffle,
   Repeat,
   GripVertical,
-  ChevronUp,
-  ChevronDown,
 } from 'lucide-react';
 
 interface QueuePanelProps {
@@ -42,7 +40,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
   const [loading, setLoading] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
 
-  // Drag and Drop State
+  // Smooth Drag and Drop State
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -68,6 +66,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
   const handleDragStart = (e: React.DragEvent, index: number) => {
     if (!canManage) return;
     setDraggedIndex(index);
+    setDragOverIndex(index);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', index.toString());
   };
@@ -94,18 +93,6 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
     }
     setDraggedIndex(null);
     setDragOverIndex(null);
-  };
-
-  const handleMoveUp = (index: number) => {
-    if (index > 0) {
-      onReorderQueue(index, index - 1);
-    }
-  };
-
-  const handleMoveDown = (index: number) => {
-    if (index < queue.length - 1) {
-      onReorderQueue(index, index + 1);
-    }
   };
 
   return (
@@ -261,7 +248,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                   )}
                   {currentVideo.addedBy?.channelName && (
                     <span style={{ color: 'var(--text-muted)' }}>
-                      {currentVideo.addedBy.channelName} 등록
+                      {currentVideo.addedBy.channelName}
                     </span>
                   )}
                 </div>
@@ -356,10 +343,26 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
               </span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
               {queue.map((item, index) => {
                 const isDragging = draggedIndex === index;
                 const isOver = dragOverIndex === index;
+
+                // Calculate smooth translateY displacement during drag
+                let translateY = 0;
+                const CARD_DISPLACEMENT = 58; // 52px card height + 6px gap
+
+                if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+                  if (draggedIndex < dragOverIndex) {
+                    if (index > draggedIndex && index <= dragOverIndex) {
+                      translateY = -CARD_DISPLACEMENT;
+                    }
+                  } else if (draggedIndex > dragOverIndex) {
+                    if (index >= dragOverIndex && index < draggedIndex) {
+                      translateY = CARD_DISPLACEMENT;
+                    }
+                  }
+                }
 
                 return (
                   <div
@@ -380,89 +383,35 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                         : 'var(--surface-dark-alt)',
                       borderRadius: 'var(--radius-md)',
                       padding: '8px 10px',
-                      border: isOver
+                      border: isDragging
+                        ? '1px dashed rgba(0, 255, 163, 0.5)'
+                        : isOver
                         ? '1px solid var(--brand-green)'
-                        : isDragging
-                        ? '1px dashed rgba(0, 255, 163, 0.4)'
                         : '1px solid var(--border-color)',
                       opacity: isDragging ? 0.35 : 1,
                       cursor: canManage ? 'grab' : 'default',
-                      transition: 'background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease',
+                      transform: `translateY(${translateY}px)`,
+                      transition: isDragging
+                        ? 'none'
+                        : 'transform 0.22s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease',
                       position: 'relative',
+                      zIndex: isDragging ? 10 : 1,
                     }}
                   >
-                    {/* Drag Handle & Step Buttons (Admin / Manager only) */}
+                    {/* Drag Handle (Admin / Manager only) */}
                     {canManage && (
                       <div
                         style={{
+                          color: 'var(--text-dim)',
+                          cursor: 'grab',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 1,
-                          color: 'var(--text-dim)',
+                          padding: '2px 0',
+                          flexShrink: 0,
                         }}
+                        title="드래그하여 순서 변경"
                       >
-                        {/* Grip Handle */}
-                        <div
-                          style={{
-                            cursor: 'grab',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '2px 0',
-                          }}
-                          title="드래그하여 순서 변경"
-                        >
-                          <GripVertical size={14} />
-                        </div>
-
-                        {/* Up / Down Arrow Step Buttons */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveUp(index);
-                            }}
-                            disabled={index === 0}
-                            title="위로 이동"
-                            style={{
-                              padding: 0,
-                              lineHeight: 1,
-                              opacity: index === 0 ? 0.2 : 0.6,
-                              cursor: index === 0 ? 'default' : 'pointer',
-                              color: 'var(--text-primary)',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (index > 0) e.currentTarget.style.opacity = '1';
-                            }}
-                            onMouseLeave={(e) => {
-                              if (index > 0) e.currentTarget.style.opacity = '0.6';
-                            }}
-                          >
-                            <ChevronUp size={11} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveDown(index);
-                            }}
-                            disabled={index === queue.length - 1}
-                            title="아래로 이동"
-                            style={{
-                              padding: 0,
-                              lineHeight: 1,
-                              opacity: index === queue.length - 1 ? 0.2 : 0.6,
-                              cursor: index === queue.length - 1 ? 'default' : 'pointer',
-                              color: 'var(--text-primary)',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (index < queue.length - 1) e.currentTarget.style.opacity = '1';
-                            }}
-                            onMouseLeave={(e) => {
-                              if (index < queue.length - 1) e.currentTarget.style.opacity = '0.6';
-                            }}
-                          >
-                            <ChevronDown size={11} />
-                          </button>
-                        </div>
+                        <GripVertical size={14} />
                       </div>
                     )}
 
@@ -515,7 +464,7 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                         )}
                         {item.addedBy?.channelName && (
                           <span style={{ color: 'var(--text-muted)' }}>
-                            {item.addedBy.channelName} 등록
+                            {item.addedBy.channelName}
                           </span>
                         )}
                       </div>

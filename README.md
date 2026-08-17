@@ -26,6 +26,21 @@ npm start
 
 - 서비스 접속: `http://localhost:4000`
 
+### 3. 도커 배포 (Docker)
+
+Docker 및 Docker Compose가 설치된 환경에서 컨테이너로 즉시 배포할 수 있습니다.
+
+```bash
+# 컨테이너 빌드 및 백그라운드 실행
+docker compose up -d --build
+
+# 로그 확인
+docker compose logs -f
+
+# 컨테이너 중지
+docker compose down
+```
+
 ## 환경 변수 (.env)
 
 `server/.env.example` 파일을 복사하여 `server/.env`를 생성하고 설정합니다.

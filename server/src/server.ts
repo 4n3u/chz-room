@@ -4,6 +4,9 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import chzzkAuthRouter from './auth/chzzkAuth';
 import mockAuthRouter from './auth/mockAuth';
 import { globalRoomManager } from './rooms/RoomManager';
@@ -16,6 +19,18 @@ export function createApp(): Express {
   const isProduction = process.env.NODE_ENV === 'production';
   const CLIENT_URL = process.env.CLIENT_URL || (isProduction ? true : 'http://localhost:5173');
 
+  // 1. Security Headers (Helmet)
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Disabled to allow YouTube iframe player embeds & external CDNs
+      crossOriginEmbedderPolicy: false,
+    })
+  );
+
+  // 2. Gzip / Deflate Compression
+  app.use(compression());
+
+  // 3. CORS
   app.use(
     cors({
       origin: CLIENT_URL === 'true' || CLIENT_URL === true ? true : (CLIENT_URL as any),
@@ -25,6 +40,26 @@ export function createApp(): Express {
 
   app.use(express.json());
   app.use(cookieParser());
+
+  // 4. Rate Limiting (DDoS & Abuse Prevention)
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 400, // 400 requests per 15 min
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.path === '/health' || req.path === '/api/health',
+    message: { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+  });
+
+  const createRoomLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30, // Max 30 rooms per 15 min per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: '치즈룸 생성 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+  });
+
+  app.use('/api', apiLimiter);
 
   // Health check
   app.get('/api/health', (req: Request, res: Response) => {
@@ -41,7 +76,7 @@ export function createApp(): Express {
     res.json({ rooms });
   });
 
-  app.post('/api/rooms', (req: Request, res: Response) => {
+  app.post('/api/rooms', createRoomLimiter, (req: Request, res: Response) => {
     const { title, hostUser, isPrivate, password } = req.body;
 
     if (!title || !hostUser?.channelId) {

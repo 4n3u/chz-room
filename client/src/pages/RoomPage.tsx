@@ -228,6 +228,19 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                     </span>
                   </>
                 )}
+
+                {/* Dot Divider & Added by Nickname */}
+                {currentVideo.addedBy?.channelName && (
+                  <>
+                    <span style={{ color: 'var(--text-dim)' }}>•</span>
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                        {currentVideo.addedBy.channelName}
+                      </span>
+                      <span> 등록</span>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           )}

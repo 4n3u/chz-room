@@ -19,7 +19,7 @@ export class RoomManager {
    * Generates a unique room ID
    */
   private generateRoomId(): string {
-    return 'chz-' + crypto.randomBytes(3).toString('hex');
+    return crypto.randomBytes(3).toString('hex');
   }
 
   /**

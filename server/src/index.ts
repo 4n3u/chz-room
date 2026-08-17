@@ -5,14 +5,15 @@ import { globalRoomManager } from './rooms/RoomManager';
 import { registerSyncHandlers } from './sockets/syncHandler';
 
 const PORT = process.env.PORT || 4000;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const isProduction = process.env.NODE_ENV === 'production';
+const CLIENT_URL = process.env.CLIENT_URL || (isProduction ? true : 'http://localhost:5173');
 
 const app = createApp();
 const httpServer = http.createServer(app);
 
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: CLIENT_URL,
+    origin: CLIENT_URL === 'true' || CLIENT_URL === true ? true : (CLIENT_URL as any),
     credentials: true,
   },
 });

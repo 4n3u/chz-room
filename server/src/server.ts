@@ -2,6 +2,8 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 import chzzkAuthRouter from './auth/chzzkAuth';
 import mockAuthRouter from './auth/mockAuth';
 import { globalRoomManager } from './rooms/RoomManager';
@@ -11,11 +13,12 @@ dotenv.config();
 export function createApp(): Express {
   const app = express();
 
-  const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const CLIENT_URL = process.env.CLIENT_URL || (isProduction ? true : 'http://localhost:5173');
 
   app.use(
     cors({
-      origin: CLIENT_URL,
+      origin: CLIENT_URL === 'true' || CLIENT_URL === true ? true : (CLIENT_URL as any),
       credentials: true,
     })
   );
@@ -65,6 +68,25 @@ export function createApp(): Express {
     const { password, ...safeRoom } = room;
     res.json({ room: safeRoom, hasPassword: !!password });
   });
+
+  // Serve frontend static build in production (Single-process deployment)
+  const possibleDistPaths = [
+    path.resolve(__dirname, '../../client/dist'),
+    path.resolve(__dirname, '../client/dist'),
+    path.resolve(process.cwd(), 'client/dist'),
+    path.resolve(process.cwd(), '../client/dist'),
+  ];
+  const clientDistPath = possibleDistPaths.find((p) => fs.existsSync(p));
+
+  if (clientDistPath) {
+    app.use(express.static(clientDistPath));
+    app.get('*', (req: Request, res: Response) => {
+      if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API route not found' });
+      }
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+    });
+  }
 
   return app;
 }

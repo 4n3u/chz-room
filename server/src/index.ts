@@ -1,6 +1,8 @@
 import http from 'http';
 import { createApp } from './server';
 import { Server as SocketIOServer } from 'socket.io';
+import { globalRoomManager } from './rooms/RoomManager';
+import { registerSyncHandlers } from './sockets/syncHandler';
 
 const PORT = process.env.PORT || 4000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -15,10 +17,8 @@ const io = new SocketIOServer(httpServer, {
   },
 });
 
-// Socket server will be connected to syncHandler in Task 4
-io.on('connection', (socket) => {
-  console.log(`[Socket] User connected: ${socket.id}`);
-});
+// Register real-time sync socket handlers
+registerSyncHandlers(io, globalRoomManager);
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Chzzk Sync-Tube Server running at http://localhost:${PORT}`);

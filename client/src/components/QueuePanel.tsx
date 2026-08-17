@@ -244,16 +244,26 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    marginBottom: 4,
+                    marginBottom: 3,
                   }}
                   title={currentVideo.title}
                 >
                   {currentVideo.title}
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    등록: {currentVideo.addedBy?.channelName || '치지직 유저'}
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                  {currentVideo.authorName && (
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      {currentVideo.authorName}
+                    </span>
+                  )}
+                  {currentVideo.authorName && currentVideo.addedBy?.channelName && (
+                    <span style={{ color: 'var(--text-dim)' }}>•</span>
+                  )}
+                  {currentVideo.addedBy?.channelName && (
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {currentVideo.addedBy.channelName} 등록
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -484,9 +494,31 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                       >
                         {item.title}
                       </p>
-                      <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                        {item.addedBy?.channelName}
-                      </span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          fontSize: 11,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {item.authorName && (
+                          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                            {item.authorName}
+                          </span>
+                        )}
+                        {item.authorName && item.addedBy?.channelName && (
+                          <span style={{ color: 'var(--text-dim)' }}>•</span>
+                        )}
+                        {item.addedBy?.channelName && (
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            {item.addedBy.channelName} 등록
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Action Buttons (Admin & Manager only) */}

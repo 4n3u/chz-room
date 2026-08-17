@@ -62,6 +62,18 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>
             재생 히스토리
           </span>
+          <span
+            style={{
+              fontSize: 12,
+              backgroundColor: 'var(--surface-dark-subtle)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-full)',
+              color: 'var(--brand-green)',
+              fontWeight: 700,
+            }}
+          >
+            {history.length}곡
+          </span>
         </div>
 
         {canManage && history.length > 0 && (
@@ -210,7 +222,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 5,
                     fontSize: 11,
                     color: 'var(--text-dim)',
                     flexWrap: 'nowrap',
@@ -223,11 +235,28 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        color: 'var(--text-muted)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 600,
                       }}
                     >
                       {item.authorName}
                     </span>
+                  )}
+                  {item.addedBy?.channelName && (
+                    <>
+                      {item.authorName && <span>•</span>}
+                      <span
+                        style={{
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          color: 'var(--text-muted)',
+                        }}
+                        title={`신청자: ${item.addedBy.channelName}`}
+                      >
+                        {item.addedBy.channelName}
+                      </span>
+                    </>
                   )}
                   {item.playedAt && (
                     <>

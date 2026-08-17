@@ -11,7 +11,7 @@ import morgan from 'morgan';
 import chzzkAuthRouter from './auth/chzzkAuth';
 import mockAuthRouter from './auth/mockAuth';
 import { globalRoomManager } from './rooms/RoomManager';
-import { logger } from './utils/logger';
+import { logger, accessLogStream } from './utils/logger';
 
 dotenv.config();
 
@@ -21,10 +21,15 @@ export function createApp(): Express {
   const isProduction = process.env.NODE_ENV === 'production';
   const CLIENT_URL = process.env.CLIENT_URL || (isProduction ? true : 'http://localhost:5173');
 
-  // 1. HTTP Access Logging (Morgan)
-  const morganFormat = isProduction ? 'combined' : 'dev';
+  // 1. HTTP Access Logging (Morgan - Console & File)
   app.use(
-    morgan(morganFormat, {
+    morgan(isProduction ? 'combined' : 'dev', {
+      skip: (req) => req.path === '/api/health' || req.path === '/health',
+    })
+  );
+  app.use(
+    morgan('combined', {
+      stream: accessLogStream,
       skip: (req) => req.path === '/api/health' || req.path === '/health',
     })
   );

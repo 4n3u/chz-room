@@ -73,7 +73,7 @@ export class RoomManager {
         list.push({
           id: room.id,
           title: room.title,
-          hostName: hostMember?.user.channelName || '방장',
+          hostName: hostMember?.user.channelName || '어드민',
           hostAvatar: hostMember?.user.channelImageUrl,
           memberCount: room.members.length,
           currentVideoTitle: room.currentVideo?.title,

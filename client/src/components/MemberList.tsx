@@ -78,7 +78,7 @@ export const MemberList: React.FC<MemberListProps> = ({
         }}
       >
         <ShieldCheck size={14} color="var(--brand-green)" />
-        <span>방장과 관리자는 다음 영상 넘기기 및 대기열을 제어할 수 있습니다.</span>
+        <span>어드민과 관리자는 다음 영상 넘기기 및 대기열을 제어할 수 있습니다.</span>
       </div>
 
       {/* Member List Items */}
@@ -152,7 +152,7 @@ export const MemberList: React.FC<MemberListProps> = ({
                     <div style={{ marginTop: 2 }}>
                       {member.role === 'host' && (
                         <span className="badge badge-host">
-                          <Crown size={10} /> 방장
+                          <Crown size={10} /> 어드민
                         </span>
                       )}
                       {member.role === 'mod' && (

@@ -64,7 +64,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         }
 
         if (!roomManager.hasControlPermission(roomId, user.channelId)) {
-          return callback?.({ error: '영상을 제어할 수 있는 권한(방장/관리자)이 없습니다.' });
+          return callback?.({ error: '영상을 제어할 수 있는 권한(어드민/관리자)이 없습니다.' });
         }
 
         const updatedRoom = roomManager.updatePlayback(roomId, isPlaying, currentTime, playbackRate);
@@ -212,7 +212,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         const success = roomManager.setRole(roomId, user?.channelId, targetUserId, newRole);
 
         if (!success) {
-          return callback?.({ error: '권한을 변경할 수 없습니다 (방장 전용 기능).' });
+          return callback?.({ error: '권한을 변경할 수 없습니다 (어드민 전용 기능).' });
         }
 
         const room = roomManager.getRoom(roomId);

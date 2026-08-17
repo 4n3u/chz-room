@@ -273,12 +273,16 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                {/* External YouTube Link */}
+                {/* External Link (YouTube or SoundCloud) */}
                 <a
-                  href={`https://www.youtube.com/watch?v=${item.videoId}`}
+                  href={
+                    item.source === 'soundcloud'
+                      ? item.soundcloudUrl || item.authorUrl || item.videoId
+                      : `https://www.youtube.com/watch?v=${item.videoId}`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="유튜브 새 탭으로 열기"
+                  title={item.source === 'soundcloud' ? '사운드클라우드에서 새 탭으로 열기' : '유튜브에서 새 탭으로 열기'}
                   style={{
                     width: 26,
                     height: 26,

@@ -71,23 +71,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
         textAlign: 'center',
       }}
     >
-      <div style={{ maxWidth: 460, width: '100%' }}>
-        {/* Title */}
-        <h1
-          style={{
-            fontSize: 'clamp(32px, 5vw, 44px)',
-            fontWeight: 900,
-            letterSpacing: '-1px',
-            marginBottom: 12,
-            color: 'var(--text-primary)',
-          }}
-        >
-          chz-room
-        </h1>
-        <p style={{ fontSize: 15, color: 'var(--text-muted)', marginBottom: 36 }}>
-          치지직 유저들과 실시간 유튜브 동시 시청
-        </p>
-
+      <div style={{ maxWidth: 420, width: '100%' }}>
         {error && (
           <div
             style={{

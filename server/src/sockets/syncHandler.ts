@@ -4,6 +4,7 @@ import { ChzzkUser } from '../auth/types';
 import { fetchYouTubeMetadata, parseYouTubeId, isShortsUrl } from '../utils/youtube';
 import { fetchSoundCloudMetadata, isSoundCloudUrl, parseSoundCloudUrl } from '../utils/soundcloud';
 import { UserRole, VideoItem, QueueLimitMode, RoomSettings } from '../rooms/types';
+import { logger } from '../utils/logger';
 import crypto from 'crypto';
 
 export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManager) {
@@ -22,10 +23,15 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
 
         const joinResult = roomManager.joinRoom(roomId, socket.id, user);
         if (!joinResult) {
+          logger.warn(`[Socket] Join rejected for non-existent room: ${roomId} (user: ${user.channelName})`);
           return callback?.({ success: false, error: '존재하지 않는 룸입니다.' });
         }
 
         socket.join(roomId);
+
+        logger.info(
+          `[Socket] User "${user.channelName}" (${user.channelId}) joined room "${roomId}" (role: ${joinResult.role}, members: ${joinResult.room.members.length})`
+        );
 
         const calculatedTime = roomManager.getCalculatedCurrentTime(joinResult.room);
 
@@ -65,6 +71,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         }
 
         if (!roomManager.hasControlPermission(roomId, user.channelId)) {
+          logger.warn(`[Socket] Permission denied on video:control in room "${roomId}" (user: ${user.channelName})`);
           return callback?.({ error: '영상을 제어할 수 있는 권한(어드민/매니저)이 없습니다.' });
         }
 
@@ -72,6 +79,10 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!updatedRoom) {
           return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
+
+        logger.info(
+          `[Socket] User "${user.channelName}" controlled playback in room "${roomId}" (playing: ${isPlaying}, time: ${currentTime}s, rate: ${playbackRate}x)`
+        );
 
         // Broadcast sync to all clients in the room
         io.to(roomId).emit('video:sync', {
@@ -152,10 +163,17 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         const bypassLimit = roomManager.hasControlPermission(roomId, user.channelId);
         const addResult = roomManager.addToQueue(roomId, videoItem, bypassLimit);
         if (!addResult.success || !addResult.room) {
+          logger.warn(
+            `[Socket] Queue add rejected for user "${user.channelName}" in room "${roomId}" (reason: "${addResult.error}")`
+          );
           return callback?.({ error: addResult.error || '룸을 찾을 수 없습니다.' });
         }
 
         const updatedRoom = addResult.room;
+
+        logger.info(
+          `[Socket] User "${user.channelName}" added item to queue in room "${roomId}" (source: ${videoItem.source}, id: ${videoItem.videoId}, title: "${videoItem.title}")`
+        );
 
         // If it became the currently playing video immediately
         if (wasEmpty) {
@@ -187,6 +205,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, queueItemId, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on queue:remove in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '대기열을 관리할 권한이 없습니다.' });
         }
 
@@ -194,6 +213,8 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!updatedRoom) {
           return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
+
+        logger.info(`[Socket] User "${user.channelName}" removed queue item "${queueItemId}" in room "${roomId}"`);
 
         io.to(roomId).emit('queue:updated', {
           currentVideo: updatedRoom.currentVideo,
@@ -213,6 +234,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, fromIndex, toIndex, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on queue:reorder in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '대기열 순서를 변경할 권한(어드민/매니저)이 없습니다.' });
         }
 
@@ -220,6 +242,10 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!updatedRoom) {
           return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
+
+        logger.info(
+          `[Socket] User "${user.channelName}" reordered queue in room "${roomId}" (from: ${fromIndex}, to: ${toIndex})`
+        );
 
         io.to(roomId).emit('queue:updated', {
           currentVideo: updatedRoom.currentVideo,
@@ -239,6 +265,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, isShuffle, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on queue:mode in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '재생 모드를 변경할 권한(어드민/매니저)이 없습니다.' });
         }
 
@@ -246,6 +273,8 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!updatedRoom) {
           return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
+
+        logger.info(`[Socket] User "${user.channelName}" set shuffle mode in room "${roomId}" to ${isShuffle}`);
 
         io.to(roomId).emit('queue:mode_updated', {
           isShuffle: updatedRoom.isShuffle,
@@ -264,6 +293,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on queue:next in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '다음 영상으로 넘길 권한이 없습니다.' });
         }
 
@@ -271,6 +301,10 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!nextRes) {
           return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
+
+        logger.info(
+          `[Socket] User "${user.channelName}" skipped to next video in room "${roomId}" (current: "${nextRes.currentVideo?.title || 'none'}")`
+        );
 
         // Broadcast video sync and queue update
         io.to(roomId).emit('video:sync', {
@@ -303,6 +337,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, queueItemId, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on queue:play_now in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '영상을 즉시 재생할 권한(어드민/매니저)이 없습니다.' });
         }
 
@@ -310,6 +345,10 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!playRes) {
           return callback?.({ error: '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }
+
+        logger.info(
+          `[Socket] User "${user.channelName}" played queue item "${queueItemId}" immediately in room "${roomId}"`
+        );
 
         io.to(roomId).emit('video:sync', {
           videoId: playRes.currentVideo?.videoId || null,
@@ -347,8 +386,15 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         const bypassLimit = roomManager.hasControlPermission(roomId, user.channelId);
         const res = roomManager.reAddFromHistory(roomId, historyItemId, user, bypassLimit);
         if (!res.success || !res.room || !res.reAddedVideo) {
+          logger.warn(
+            `[Socket] History re-add rejected for user "${user.channelName}" in room "${roomId}" (reason: "${res.error}")`
+          );
           return callback?.({ error: res.error || '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }
+
+        logger.info(
+          `[Socket] User "${user.channelName}" re-added history item "${historyItemId}" in room "${roomId}"`
+        );
 
         io.to(roomId).emit('queue:updated', {
           currentVideo: res.room.currentVideo,
@@ -378,6 +424,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, historyItemId, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on history:play_now in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '영상을 즉시 재생할 권한(어드민/매니저)이 없습니다.' });
         }
 
@@ -385,6 +432,10 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!res) {
           return callback?.({ error: '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }
+
+        logger.info(
+          `[Socket] User "${user.channelName}" played history item "${historyItemId}" immediately in room "${roomId}"`
+        );
 
         io.to(roomId).emit('video:sync', {
           videoId: res.currentVideo?.videoId || null,
@@ -416,6 +467,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on history:clear in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '히스토리를 비울 권한이 없습니다.' });
         }
 
@@ -423,6 +475,8 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!updatedRoom) {
           return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
+
+        logger.info(`[Socket] User "${user.channelName}" cleared history in room "${roomId}"`);
 
         io.to(roomId).emit('history:updated', {
           history: updatedRoom.history,
@@ -443,8 +497,13 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         const success = roomManager.setRole(roomId, user?.channelId, targetUserId, newRole);
 
         if (!success) {
+          logger.warn(`[Socket] Permission denied on role:update in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '권한을 변경할 수 없습니다 (어드민 전용 기능).' });
         }
+
+        logger.info(
+          `[Socket] User "${user.channelName}" updated role for "${targetUserId}" in room "${roomId}" to ${newRole}`
+        );
 
         const room = roomManager.getRoom(roomId);
         if (room) {
@@ -469,6 +528,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       ) => {
         const { roomId, settings, queueLimitMode, user } = data;
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
+          logger.warn(`[Socket] Permission denied on room:settings_update in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '룸 설정을 변경할 권한(어드민/매니저)이 없습니다.' });
         }
 
@@ -477,6 +537,8 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!updatedRoom) {
           return callback?.({ error: '룸을 찾을 수 없습니다.' });
         }
+
+        logger.info(`[Socket] User "${user.channelName}" updated settings for room "${roomId}"`);
 
         io.to(roomId).emit('room:settings_updated', {
           settings: updatedRoom.settings,
@@ -487,10 +549,13 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
       }
     );
 
-    // 7. Disconnect / Leave Room
+    // 14. Disconnect / Leave Room
     const handleDisconnect = () => {
       const leaveResult = roomManager.leaveRoom(socket.id);
       if (leaveResult && leaveResult.room) {
+        logger.info(
+          `[Socket] Socket ${socket.id} left room "${leaveResult.roomId}" (remaining members: ${leaveResult.room.members.length})`
+        );
         io.to(leaveResult.roomId).emit('members:updated', leaveResult.room.members);
       }
     };

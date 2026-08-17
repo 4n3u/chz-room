@@ -3,6 +3,16 @@ import { createApp } from './server';
 import { Server as SocketIOServer } from 'socket.io';
 import { globalRoomManager } from './rooms/RoomManager';
 import { registerSyncHandlers } from './sockets/syncHandler';
+import { logger } from './utils/logger';
+
+// Process-level crash prevention and logging
+process.on('unhandledRejection', (reason: any) => {
+  logger.error('[Process] Unhandled Promise Rejection:', reason?.stack || reason);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  logger.error('[Process] Uncaught Exception:', error?.stack || error?.message);
+});
 
 const PORT = process.env.PORT || 4000;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -22,5 +32,5 @@ const io = new SocketIOServer(httpServer, {
 registerSyncHandlers(io, globalRoomManager);
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Chzzk Sync-Tube Server running at http://localhost:${PORT}`);
+  logger.info(`Server started successfully on port ${PORT} (env: ${process.env.NODE_ENV || 'development'})`);
 });

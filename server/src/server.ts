@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
@@ -7,9 +7,11 @@ import fs from 'fs';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import morgan from 'morgan';
 import chzzkAuthRouter from './auth/chzzkAuth';
 import mockAuthRouter from './auth/mockAuth';
 import { globalRoomManager } from './rooms/RoomManager';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -19,7 +21,15 @@ export function createApp(): Express {
   const isProduction = process.env.NODE_ENV === 'production';
   const CLIENT_URL = process.env.CLIENT_URL || (isProduction ? true : 'http://localhost:5173');
 
-  // 1. Security Headers (Helmet)
+  // 1. HTTP Access Logging (Morgan)
+  const morganFormat = isProduction ? 'combined' : 'dev';
+  app.use(
+    morgan(morganFormat, {
+      skip: (req) => req.path === '/api/health' || req.path === '/health',
+    })
+  );
+
+  // 2. Security Headers (Helmet)
   app.use(
     helmet({
       contentSecurityPolicy: false, // Disabled to allow YouTube iframe player embeds & external CDNs
@@ -27,10 +37,10 @@ export function createApp(): Express {
     })
   );
 
-  // 2. Gzip / Deflate Compression
+  // 3. Gzip / Deflate Compression
   app.use(compression());
 
-  // 3. CORS
+  // 4. CORS
   app.use(
     cors({
       origin: CLIENT_URL === 'true' || CLIENT_URL === true ? true : (CLIENT_URL as any),
@@ -122,6 +132,12 @@ export function createApp(): Express {
       res.sendFile(path.join(clientDistPath, 'index.html'));
     });
   }
+
+  // 5. Global Express Error Handler
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    logger.error(`[Express] Unhandled error on ${req.method} ${req.originalUrl}:`, err?.stack || err?.message || err);
+    res.status(500).json({ error: 'Internal server error' });
+  });
 
   return app;
 }

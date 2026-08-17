@@ -502,7 +502,7 @@ export class RoomManager {
   public reAddFromHistory(
     roomId: string,
     historyItemId: string,
-    userChannelId?: string,
+    currentUser: ChzzkUser,
     bypassLimit: boolean = false
   ): { success: boolean; reAddedVideo?: VideoItem; room?: RoomState; error?: string } {
     const room = this.rooms.get(roomId);
@@ -514,6 +514,7 @@ export class RoomManager {
     const newQueueItem: VideoItem = {
       ...item,
       id: crypto.randomBytes(4).toString('hex'),
+      addedBy: currentUser,
       playedAt: undefined,
     };
 
@@ -530,7 +531,8 @@ export class RoomManager {
    */
   public playHistoryNow(
     roomId: string,
-    historyItemId: string
+    historyItemId: string,
+    currentUser?: ChzzkUser
   ): { currentVideo: VideoItem | null; room: RoomState } | null {
     const room = this.rooms.get(roomId);
     if (!room) return null;
@@ -545,6 +547,8 @@ export class RoomManager {
     const targetVideo: VideoItem = {
       ...item,
       id: crypto.randomBytes(4).toString('hex'),
+      addedBy: currentUser || item.addedBy,
+      playedAt: undefined,
     };
 
     room.currentVideo = targetVideo;

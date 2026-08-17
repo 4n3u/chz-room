@@ -345,7 +345,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         }
 
         const bypassLimit = roomManager.hasControlPermission(roomId, user.channelId);
-        const res = roomManager.reAddFromHistory(roomId, historyItemId, user.channelId, bypassLimit);
+        const res = roomManager.reAddFromHistory(roomId, historyItemId, user, bypassLimit);
         if (!res.success || !res.room || !res.reAddedVideo) {
           return callback?.({ error: res.error || '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }
@@ -381,7 +381,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           return callback?.({ error: '영상을 즉시 재생할 권한(어드민/매니저)이 없습니다.' });
         }
 
-        const res = roomManager.playHistoryNow(roomId, historyItemId);
+        const res = roomManager.playHistoryNow(roomId, historyItemId, user);
         if (!res) {
           return callback?.({ error: '영상을 찾을 수 없거나 룸이 존재하지 않습니다.' });
         }

@@ -330,6 +330,41 @@ describe('RoomManager Tests', () => {
     expect(resDup.success).toBe(false);
     expect(resDup.error).toContain('중복 신청 금지');
   });
+
+  it('should attribute re-added video to the user who clicked re-add, not original applicant', () => {
+    const originalApplicant = { channelId: 'user-original', channelName: '원래신청자' };
+    const reAddingUser = { channelId: 'user-readd', channelName: '재신청자' };
+
+    const room = roomManager.createRoom({
+      title: '히스토리 테스트룸',
+      hostUser,
+    });
+
+    const v1 = { id: 'item-1', videoId: 'vid-original', title: '명곡', thumbnailUrl: '', addedBy: originalApplicant };
+    const v2 = { id: 'item-2', videoId: 'vid-next', title: '다음곡', thumbnailUrl: '', addedBy: originalApplicant };
+
+    roomManager.addToQueue(room.id, v1);
+    roomManager.addToQueue(room.id, v2);
+
+    // Skip to next to push v1 to history
+    roomManager.nextVideo(room.id);
+
+    const roomAfterSkip = roomManager.getRoom(room.id);
+    expect(roomAfterSkip?.history.length).toBe(1);
+    const historyItem = roomAfterSkip?.history[0]!;
+    expect(historyItem.addedBy.channelName).toBe('원래신청자');
+
+    // Re-add v1 from history by reAddingUser
+    const reAddRes = roomManager.reAddFromHistory(room.id, historyItem.id, reAddingUser, true);
+    expect(reAddRes.success).toBe(true);
+    expect(reAddRes.reAddedVideo?.addedBy.channelId).toBe('user-readd');
+    expect(reAddRes.reAddedVideo?.addedBy.channelName).toBe('재신청자');
+
+    // Also check queue item in room
+    const updatedRoom = roomManager.getRoom(room.id);
+    const queuedItem = updatedRoom?.queue.find((q) => q.videoId === 'vid-original');
+    expect(queuedItem?.addedBy.channelName).toBe('재신청자');
+  });
 });
 
 

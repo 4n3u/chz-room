@@ -410,9 +410,9 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
                       opacity: isDragging ? 0.35 : 1,
                       cursor: canManage ? 'grab' : 'default',
                       transform: `translateY(${translateY}px)`,
-                      transition: isDragging
-                        ? 'none'
-                        : 'transform 0.22s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease',
+                      transition: isDragging || draggedIndex === null
+                        ? 'background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease'
+                        : 'transform 0.18s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease',
                       position: 'relative',
                       zIndex: isDragging ? 10 : 1,
                     }}

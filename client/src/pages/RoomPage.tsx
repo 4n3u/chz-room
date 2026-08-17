@@ -335,7 +335,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               }}
             >
               <ListMusic size={14} />
-              <span>대기열 ({queue.length})</span>
+              <span>대기열</span>
             </button>
 
             {/* History Tab Button */}

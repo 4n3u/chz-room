@@ -1,6 +1,6 @@
 import React from 'react';
 import { RoomMember, UserRole } from '../types';
-import { Crown, Shield, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Crown, Shield, ShieldCheck, CheckCircle2, Users } from 'lucide-react';
 
 interface MemberListProps {
   members: RoomMember[];
@@ -45,9 +45,12 @@ export const MemberList: React.FC<MemberListProps> = ({
           justifyContent: 'space-between',
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-          룸 참가자 목록
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Users size={16} color="var(--brand-green)" />
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+            룸 참가자 목록
+          </span>
+        </div>
         <span
           style={{
             fontSize: 12,

@@ -139,9 +139,26 @@ export const QueuePanel: React.FC<QueuePanelProps> = ({
           backgroundColor: 'var(--surface-dark-alt)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <ListMusic size={18} color="var(--brand-green)" />
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>대기열 & 영상 등록</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <ListMusic size={16} color="var(--brand-green)" />
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+              대기열 & 영상 등록
+            </span>
+          </div>
+
+          <span
+            style={{
+              fontSize: 12,
+              backgroundColor: 'var(--surface-dark-subtle)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-full)',
+              color: 'var(--brand-green)',
+              fontWeight: 700,
+            }}
+          >
+            {queue.length}곡
+          </span>
         </div>
 
         <form onSubmit={handleAddSubmit} style={{ display: 'flex', gap: 8 }}>

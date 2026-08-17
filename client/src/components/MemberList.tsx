@@ -78,7 +78,7 @@ export const MemberList: React.FC<MemberListProps> = ({
         }}
       >
         <ShieldCheck size={14} color="var(--brand-green)" />
-        <span>어드민과 관리자는 다음 영상 넘기기 및 대기열을 제어할 수 있습니다.</span>
+        <span>어드민과 매니저는 다음 영상 넘기기 및 대기열을 제어할 수 있습니다.</span>
       </div>
 
       {/* Member List Items */}
@@ -157,7 +157,7 @@ export const MemberList: React.FC<MemberListProps> = ({
                       )}
                       {member.role === 'mod' && (
                         <span className="badge badge-mod">
-                          <Shield size={10} /> 관리자
+                          <Shield size={10} /> 매니저
                         </span>
                       )}
                       {member.role === 'viewer' && (
@@ -174,7 +174,7 @@ export const MemberList: React.FC<MemberListProps> = ({
                       <button
                         className="btn-secondary"
                         onClick={() => onUpdateRole(member.user.channelId, 'mod')}
-                        title="관리자로 임명"
+                        title="매니저로 임명"
                         style={{
                           fontSize: 11,
                           padding: '4px 8px',
@@ -182,14 +182,14 @@ export const MemberList: React.FC<MemberListProps> = ({
                           borderColor: 'rgba(0, 255, 163, 0.3)',
                         }}
                       >
-                        관리자 임명
+                        매니저 임명
                       </button>
                     )}
                     {member.role === 'mod' && (
                       <button
                         className="btn-secondary"
                         onClick={() => onUpdateRole(member.user.channelId, 'viewer')}
-                        title="관리자 권한 해제"
+                        title="매니저 권한 해제"
                         style={{
                           fontSize: 11,
                           padding: '4px 8px',
@@ -197,7 +197,7 @@ export const MemberList: React.FC<MemberListProps> = ({
                           borderColor: 'rgba(255, 75, 75, 0.3)',
                         }}
                       >
-                        관리자 해제
+                        매니저 해제
                       </button>
                     )}
                   </div>

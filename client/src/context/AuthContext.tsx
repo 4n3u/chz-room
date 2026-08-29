@@ -76,7 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loginWithChzzk = () => {
-    window.location.href = '/api/auth/chzzk/login';
+    const origin = window.location.origin;
+    window.location.href = `/api/auth/chzzk/login?returnTo=${encodeURIComponent(origin)}`;
   };
 
   const mockLogin = async (profile: { channelName: string; channelId?: string; channelImageUrl?: string }) => {

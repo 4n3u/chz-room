@@ -9,15 +9,23 @@ const router = Router();
 const CHZZK_CLIENT_ID = process.env.CHZZK_CLIENT_ID || '4f56b73e-83b4-4338-8d82-6663cab47b47';
 const CHZZK_CLIENT_SECRET = process.env.CHZZK_CLIENT_SECRET || 'pKlJEIhnRQC551nv4IsQoHslnsSq3Q-NcV4HL06OHKI';
 const CHZZK_REDIRECT_URI = process.env.CHZZK_REDIRECT_URI || 'http://localhost:4000/api/auth/chzzk/callback';
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const JWT_SECRET = process.env.JWT_SECRET || 'chzzk_sync_tube_super_secret_jwt_key_2026_safe';
+
+function getDefaultClientUrl(req?: Request): string {
+  if (process.env.CLIENT_URL) return process.env.CLIENT_URL;
+  if (req) {
+    const host = req.get('host');
+    if (host) return `${req.protocol}://${host}`;
+  }
+  return process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173';
+}
 
 // Generate OAuth Login URL
 router.get('/login', (req: Request, res: Response) => {
   const state = crypto.randomBytes(16).toString('hex');
   
   // Detect requesting client origin (e.g. http://localhost:4000 for npm start or http://localhost:5173 for dev)
-  let origin = req.headers.origin || req.query.returnTo as string;
+  let origin = (req.query.returnTo as string) || req.headers.origin;
   if (!origin && req.headers.referer) {
     try {
       const parsed = new URL(req.headers.referer);
@@ -27,7 +35,7 @@ router.get('/login', (req: Request, res: Response) => {
     }
   }
 
-  const clientOrigin = origin || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173');
+  const clientOrigin = origin || getDefaultClientUrl(req);
 
   // Store state and return origin in cookie
   res.cookie('chzzk_oauth_state', state, {
@@ -58,17 +66,18 @@ router.get('/login', (req: Request, res: Response) => {
 // OAuth Callback Handler
 router.get('/callback', async (req: Request, res: Response) => {
   const { code, state, error, error_description } = req.query;
+  const fallbackUrl = req.cookies?.chzzk_client_origin || getDefaultClientUrl(req);
 
   console.log('[Chzzk OAuth] Callback received:', { code: code ? '***' : null, state, error, error_description });
 
   if (error) {
     console.error('[Chzzk OAuth] Error from Chzzk:', error, error_description);
-    return res.redirect(`${CLIENT_URL}/?error=${encodeURIComponent(String(error_description || error))}`);
+    return res.redirect(`${fallbackUrl}/?error=${encodeURIComponent(String(error_description || error))}`);
   }
 
   if (!code || !state) {
     console.error('[Chzzk OAuth] Missing code or state');
-    return res.redirect(`${CLIENT_URL}/?error=missing_code_or_state`);
+    return res.redirect(`${fallbackUrl}/?error=missing_code_or_state`);
   }
 
   try {
@@ -165,11 +174,11 @@ router.get('/callback', async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    const targetClientUrl = req.cookies?.chzzk_client_origin || getDefaultClientUrl(req);
+
     // Clear oauth state & client origin cookies
     res.clearCookie('chzzk_oauth_state');
     res.clearCookie('chzzk_client_origin');
-
-    const targetClientUrl = req.cookies?.chzzk_client_origin || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173');
 
     console.log(`[Chzzk OAuth] Login successful for user ${user.channelName} (${user.channelId}). Redirecting to client (${targetClientUrl})...`);
 
@@ -178,7 +187,9 @@ router.get('/callback', async (req: Request, res: Response) => {
   } catch (err: any) {
     const errorDetails = err?.response?.data || err?.message || err;
     console.error('[Chzzk OAuth] Callback failed:', errorDetails);
-    const fallbackClientUrl = req.cookies?.chzzk_client_origin || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173');
+    const fallbackClientUrl = req.cookies?.chzzk_client_origin || getDefaultClientUrl(req);
+    res.clearCookie('chzzk_oauth_state');
+    res.clearCookie('chzzk_client_origin');
     return res.redirect(`${fallbackClientUrl}/?error=${encodeURIComponent(JSON.stringify(errorDetails))}`);
   }
 });

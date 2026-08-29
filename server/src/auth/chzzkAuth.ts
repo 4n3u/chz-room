@@ -16,10 +16,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'chzzk_sync_tube_super_secret_jwt_k
 router.get('/login', (req: Request, res: Response) => {
   const state = crypto.randomBytes(16).toString('hex');
   
-  // Store state in cookie for verification
+  // Detect requesting client origin (e.g. http://localhost:4000 for npm start or http://localhost:5173 for dev)
+  let origin = req.headers.origin || req.query.returnTo as string;
+  if (!origin && req.headers.referer) {
+    try {
+      const parsed = new URL(req.headers.referer);
+      origin = parsed.origin;
+    } catch {
+      // ignore
+    }
+  }
+
+  const clientOrigin = origin || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173');
+
+  // Store state and return origin in cookie
   res.cookie('chzzk_oauth_state', state, {
     httpOnly: true,
     maxAge: 10 * 60 * 1000, // 10 minutes
+    sameSite: 'lax',
+  });
+
+  res.cookie('chzzk_client_origin', clientOrigin, {
+    httpOnly: true,
+    maxAge: 10 * 60 * 1000,
     sameSite: 'lax',
   });
 
@@ -27,7 +46,7 @@ router.get('/login', (req: Request, res: Response) => {
     CHZZK_CLIENT_ID
   )}&redirectUri=${encodeURIComponent(CHZZK_REDIRECT_URI)}&state=${encodeURIComponent(state)}`;
 
-  console.log(`[Chzzk OAuth] Login initiated. Redirecting to Chzzk: ${authUrl}`);
+  console.log(`[Chzzk OAuth] Login initiated from origin "${clientOrigin}". Redirecting to Chzzk: ${authUrl}`);
 
   // Return JSON if requested by API, or redirect if directly accessed
   if (req.headers.accept?.includes('application/json')) {
@@ -146,17 +165,21 @@ router.get('/callback', async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Clear oauth state cookie
+    // Clear oauth state & client origin cookies
     res.clearCookie('chzzk_oauth_state');
+    res.clearCookie('chzzk_client_origin');
 
-    console.log(`[Chzzk OAuth] Login successful for user ${user.channelName} (${user.channelId}). Redirecting to client...`);
+    const targetClientUrl = req.cookies?.chzzk_client_origin || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173');
+
+    console.log(`[Chzzk OAuth] Login successful for user ${user.channelName} (${user.channelId}). Redirecting to client (${targetClientUrl})...`);
 
     // Redirect to frontend with token in query param for robust cross-port sync
-    return res.redirect(`${CLIENT_URL}/?token=${encodeURIComponent(token)}&login=success`);
+    return res.redirect(`${targetClientUrl}/?token=${encodeURIComponent(token)}&login=success`);
   } catch (err: any) {
     const errorDetails = err?.response?.data || err?.message || err;
     console.error('[Chzzk OAuth] Callback failed:', errorDetails);
-    return res.redirect(`${CLIENT_URL}/?error=${encodeURIComponent(JSON.stringify(errorDetails))}`);
+    const fallbackClientUrl = req.cookies?.chzzk_client_origin || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173');
+    return res.redirect(`${fallbackClientUrl}/?error=${encodeURIComponent(JSON.stringify(errorDetails))}`);
   }
 });
 

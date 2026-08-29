@@ -8,14 +8,24 @@ const router = Router();
 
 const CHZZK_CLIENT_ID = process.env.CHZZK_CLIENT_ID || '4f56b73e-83b4-4338-8d82-6663cab47b47';
 const CHZZK_CLIENT_SECRET = process.env.CHZZK_CLIENT_SECRET || 'pKlJEIhnRQC551nv4IsQoHslnsSq3Q-NcV4HL06OHKI';
-const CHZZK_REDIRECT_URI = process.env.CHZZK_REDIRECT_URI || 'http://localhost:4000/api/auth/chzzk/callback';
 const JWT_SECRET = process.env.JWT_SECRET || 'chzzk_sync_tube_super_secret_jwt_key_2026_safe';
+
+function getRedirectUri(req: Request): string {
+  if (process.env.CHZZK_REDIRECT_URI) return process.env.CHZZK_REDIRECT_URI;
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  if (host) {
+    return `${protocol}://${host}/api/auth/chzzk/callback`;
+  }
+  return 'http://localhost:4000/api/auth/chzzk/callback';
+}
 
 function getDefaultClientUrl(req?: Request): string {
   if (process.env.CLIENT_URL) return process.env.CLIENT_URL;
   if (req) {
     const host = req.get('host');
-    if (host) return `${req.protocol}://${host}`;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    if (host) return `${protocol}://${host}`;
   }
   return process.env.NODE_ENV === 'production' ? 'http://localhost:4000' : 'http://localhost:5173';
 }
@@ -36,6 +46,7 @@ router.get('/login', (req: Request, res: Response) => {
   }
 
   const clientOrigin = origin || getDefaultClientUrl(req);
+  const redirectUri = getRedirectUri(req);
 
   // Store state and return origin in cookie
   res.cookie('chzzk_oauth_state', state, {
@@ -52,9 +63,9 @@ router.get('/login', (req: Request, res: Response) => {
 
   const authUrl = `https://chzzk.naver.com/account-interlock?clientId=${encodeURIComponent(
     CHZZK_CLIENT_ID
-  )}&redirectUri=${encodeURIComponent(CHZZK_REDIRECT_URI)}&state=${encodeURIComponent(state)}`;
+  )}&redirectUri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
 
-  console.log(`[Chzzk OAuth] Login initiated from origin "${clientOrigin}". Redirecting to Chzzk: ${authUrl}`);
+  console.log(`[Chzzk OAuth] Login initiated from origin "${clientOrigin}" with redirectUri "${redirectUri}". Redirecting to Chzzk: ${authUrl}`);
 
   // Return JSON if requested by API, or redirect if directly accessed
   if (req.headers.accept?.includes('application/json')) {

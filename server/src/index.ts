@@ -1,4 +1,14 @@
 import http from 'http';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables before any other imports
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../server/.env') });
+dotenv.config();
+
 import { createApp } from './server';
 import { Server as SocketIOServer } from 'socket.io';
 import { globalRoomManager } from './rooms/RoomManager';

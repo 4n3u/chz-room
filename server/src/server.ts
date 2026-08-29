@@ -12,7 +12,11 @@ import chzzkAuthRouter from './auth/chzzkAuth';
 import mockAuthRouter from './auth/mockAuth';
 import { globalRoomManager } from './rooms/RoomManager';
 import { logger, accessLogStream } from './utils/logger';
-
+// Load environment variables from multiple standard paths
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../server/.env') });
 dotenv.config();
 
 export function createApp(): Express {

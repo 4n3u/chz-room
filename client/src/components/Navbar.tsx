@@ -43,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
           transition: 'background-color 0.2s ease, border-color 0.2s ease',
         }}
       >
-        {/* Simple Text Logo */}
+        {/* Logo with icon.svg */}
         <div
           onClick={onGoHome}
           style={{
@@ -54,9 +54,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
             color: 'var(--text-primary)',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
+            userSelect: 'none',
           }}
         >
+          <img
+            src="/icon.svg"
+            alt="chz-room logo"
+            style={{
+              width: 18,
+              height: 18,
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
           <span>chz-room</span>
         </div>
 

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 757.42 853.83">
+  <defs>
+    <style>
+      .cls-1 {
+        isolation: isolate;
+      }
+
+      .cls-2 {
+        fill: #00ffa3;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <g id="_삼각형_1" data-name="삼각형 1" class="cls-1">
+    <g id="_삼각형_1-2" data-name="삼각형 1">
+      <path class="cls-2" d="M724.84,370.52L97.62,8.8C54.22-16.23,0,15.1,0,65.2v723.44c0,50.1,54.22,81.42,97.62,56.39l627.22-361.72c43.44-25.05,43.44-87.74,0-112.79Z"/>
+    </g>
+  </g>
+</svg>

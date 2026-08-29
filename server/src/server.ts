@@ -156,7 +156,7 @@ export function createApp(): Express {
             const roomTitle = `${room.title} - 치즈룸`;
             const currentTitle = room.currentVideo?.title ? `현재 재생: ${room.currentVideo.title}` : '실시간 영상 같이보기';
             const roomDesc = `${currentTitle} | 참가자 ${room.members.length}명과 함께 시청 중`;
-            const roomThumb = room.currentVideo?.thumbnailUrl || '/favicon.png';
+            const roomThumb = room.currentVideo?.thumbnailUrl || '/og-image.png';
 
             html = html
               .replace(/<title>.*?<\/title>/, `<title>${roomTitle}</title>`)

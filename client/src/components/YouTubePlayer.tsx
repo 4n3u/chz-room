@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PlaybackState, UserRole, VideoItem } from '../types';
-import { Film, Radio } from 'lucide-react';
+import { Film, Radio, Volume2, Loader2 } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -15,6 +15,7 @@ interface YouTubePlayerProps {
   role: UserRole;
   onVideoControl: (isPlaying: boolean, currentTime: number, playbackRate?: number) => void;
   onVideoEnded: () => void;
+  onVideoReady?: (videoId?: string) => void;
 }
 
 export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
@@ -23,12 +24,15 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   role,
   onVideoControl,
   onVideoEnded,
+  onVideoReady,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const isApiLoadedRef = useRef(false);
   const isInternalChangeRef = useRef(false);
+  const lastControlSentTimeRef = useRef<number>(0);
   const [playerReady, setPlayerReady] = useState(false);
+  const [isAutoplayMuted, setIsAutoplayMuted] = useState(false);
   
   // Track if viewer has manually desynced locally (seeking/pausing privately)
   const [isLocalDesynced, setIsLocalDesynced] = useState(false);
@@ -57,6 +61,30 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     setIsLocalDesynced(false);
   }, [currentVideo?.videoId]);
 
+  // Safe play attempt with Autoplay Policy Mute Fallback
+  const safePlay = (player: any) => {
+    if (!player || typeof player.playVideo !== 'function') return;
+    try {
+      const playPromise = player.playVideo();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          // Autoplay blocked by browser policy -> mute and retry
+          if (typeof player.mute === 'function') {
+            player.mute();
+            setIsAutoplayMuted(true);
+            player.playVideo();
+          }
+        });
+      }
+    } catch (e) {
+      if (typeof player.mute === 'function') {
+        player.mute();
+        setIsAutoplayMuted(true);
+        player.playVideo();
+      }
+    }
+  };
+
   // 2. Initialize or Update Player when currentVideo changes
   useEffect(() => {
     if (!currentVideo?.videoId) {
@@ -81,11 +109,15 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           videoId: currentVideo.videoId,
           startSeconds: playback.currentTime,
         });
-        if (playback.isPlaying) {
-          playerRef.current.playVideo();
+
+        if (playback.isPlaying && !playback.isBuffering) {
+          safePlay(playerRef.current);
         } else {
           playerRef.current.pauseVideo();
         }
+
+        onVideoReady?.(currentVideo.videoId);
+
         setTimeout(() => {
           isInternalChangeRef.current = false;
         }, 800);
@@ -96,7 +128,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       playerRef.current = new window.YT.Player('youtube-player-element', {
         videoId: currentVideo.videoId,
         playerVars: {
-          autoplay: playback.isPlaying ? 1 : 0,
+          autoplay: playback.isPlaying && !playback.isBuffering ? 1 : 0,
           controls: 1, // Native YouTube controls
           disablekb: 0, // Enable keyboard
           enablejsapi: 1,
@@ -112,11 +144,14 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               : playback.currentTime;
             
             event.target.seekTo(Math.max(0, calculatedTime), true);
-            if (playback.isPlaying) {
-              event.target.playVideo();
+            if (playback.isPlaying && !playback.isBuffering) {
+              safePlay(event.target);
             } else {
               event.target.pauseVideo();
             }
+
+            // Signal ready handshake to backend
+            onVideoReady?.(currentVideo.videoId);
           },
           onStateChange: (event: any) => {
             if (isInternalChangeRef.current) return;
@@ -129,14 +164,20 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               return;
             }
 
-            // Propagate control events if user is Admin or Manager
+            // Propagate control events if user is Admin or Manager (with echo & jitter filter)
             if (canControl) {
               const currentTime = event.target.getCurrentTime();
               const playbackRate = event.target.getPlaybackRate();
+              const now = Date.now();
+
+              // Avoid spamming identical control events within 400ms
+              if (now - lastControlSentTimeRef.current < 400) return;
 
               if (event.data === window.YT.PlayerState.PLAYING) {
+                lastControlSentTimeRef.current = now;
                 onVideoControl(true, currentTime, playbackRate);
               } else if (event.data === window.YT.PlayerState.PAUSED) {
+                lastControlSentTimeRef.current = now;
                 onVideoControl(false, currentTime, playbackRate);
               }
             } else {
@@ -165,9 +206,13 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
     isInternalChangeRef.current = true;
 
-    // Sync play/pause state
-    if (playback.isPlaying && !isActuallyPlaying) {
-      player.playVideo();
+    // Sync play/pause state according to isBuffering & isPlaying
+    if (playback.isBuffering) {
+      if (isActuallyPlaying) {
+        player.pauseVideo();
+      }
+    } else if (playback.isPlaying && !isActuallyPlaying) {
+      safePlay(player);
     } else if (!playback.isPlaying && isActuallyPlaying) {
       player.pauseVideo();
     }
@@ -190,11 +235,11 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     setTimeout(() => {
       isInternalChangeRef.current = false;
     }, 600);
-  }, [playback.isPlaying, playback.currentTime, playback.lastUpdatedTimestamp, playback.playbackRate, isLocalDesynced]);
+  }, [playback.isPlaying, playback.isBuffering, playback.currentTime, playback.lastUpdatedTimestamp, playback.playbackRate, isLocalDesynced]);
 
   // 4. Periodic Drift Correction Check (Only when synchronized with the room)
   useEffect(() => {
-    if (!playerRef.current || !playerReady || !currentVideo || !playback.isPlaying) return;
+    if (!playerRef.current || !playerReady || !currentVideo || !playback.isPlaying || playback.isBuffering) return;
     if (!canControl && isLocalDesynced) return;
 
     const interval = setInterval(() => {
@@ -230,8 +275,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       : playback.currentTime;
 
     player.seekTo(Math.max(0, expectedTime), true);
-    if (playback.isPlaying) {
-      player.playVideo();
+    if (playback.isPlaying && !playback.isBuffering) {
+      safePlay(player);
     } else {
       player.pauseVideo();
     }
@@ -240,6 +285,14 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     setTimeout(() => {
       isInternalChangeRef.current = false;
     }, 600);
+  };
+
+  // Unmute handler for Autoplay Policy Mute Fallback
+  const handleUnmute = () => {
+    if (playerRef.current && typeof playerRef.current.unMute === 'function') {
+      playerRef.current.unMute();
+      setIsAutoplayMuted(false);
+    }
   };
 
   return (
@@ -268,6 +321,62 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               height: '100%',
             }}
           />
+
+          {/* Buffering Indicator Overlay */}
+          {playback.isBuffering && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 14,
+                left: 14,
+                zIndex: 10,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                color: 'var(--brand-green)',
+                border: '1px solid rgba(0, 255, 163, 0.4)',
+                borderRadius: 'var(--radius-full)',
+                padding: '6px 14px',
+                fontSize: 12,
+                fontWeight: 700,
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.6)',
+                backdropFilter: 'blur(6px)',
+              }}
+            >
+              <Loader2 size={13} className="animate-spin" />
+              <span>동시 시청 준비 중...</span>
+            </div>
+          )}
+
+          {/* Autoplay Mute Fallback Banner / Button */}
+          {isAutoplayMuted && (
+            <button
+              onClick={handleUnmute}
+              style={{
+                position: 'absolute',
+                bottom: 16,
+                right: 16,
+                zIndex: 20,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                color: 'var(--brand-green)',
+                border: '1px solid var(--brand-green)',
+                borderRadius: 'var(--radius-full)',
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 700,
+                boxShadow: '0 6px 20px rgba(0, 255, 163, 0.35)',
+                cursor: 'pointer',
+                animation: 'pulse 1.5s infinite ease-in-out',
+              }}
+            >
+              <Volume2 size={16} />
+              <span>사운드 켜기 (음소거 해제)</span>
+            </button>
+          )}
 
           {/* Floating "Re-sync to Room" Badge/Button when Viewer is locally desynced */}
           {!canControl && isLocalDesynced && (

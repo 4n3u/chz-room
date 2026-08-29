@@ -82,6 +82,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     socket.on('video:sync', (data: PlaybackState & { videoId?: string }) => {
       setPlayback({
         isPlaying: data.isPlaying,
+        isBuffering: !!data.isBuffering,
         currentTime: data.currentTime,
         lastUpdatedTimestamp: data.lastUpdatedTimestamp,
         playbackRate: data.playbackRate,
@@ -278,6 +279,14 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     [updateRoomSettings]
   );
 
+  const sendVideoReady = useCallback(
+    (videoId?: string) => {
+      if (!socketRef.current) return;
+      socketRef.current.emit('video:ready', { roomId, videoId });
+    },
+    [roomId]
+  );
+
   const updateRole = useCallback(
     (targetUserId: string, newRole: UserRole) => {
       if (!socketRef.current || !user) return;
@@ -303,6 +312,7 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     error,
     clearError: () => setError(null),
     sendVideoControl,
+    sendVideoReady,
     addToQueue,
     removeFromQueue,
     reorderQueue,

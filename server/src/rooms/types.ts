@@ -54,6 +54,13 @@ export interface PlaybackState {
   currentTime: number;
   lastUpdatedTimestamp: number;
   playbackRate: number;
+  isBuffering?: boolean;
+}
+
+export interface BufferingState {
+  isWaiting: boolean;
+  readyClients: Set<string>;
+  startTimeout?: NodeJS.Timeout;
 }
 
 export interface RoomState {
@@ -72,6 +79,8 @@ export interface RoomState {
   isShuffle: boolean;
   settings: RoomSettings;
   queueLimitMode?: QueueLimitMode;
+  wasAutoPausedByEmpty?: boolean;
+  bufferingState?: BufferingState;
 }
 
 export interface CreateRoomOptions {

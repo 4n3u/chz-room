@@ -113,6 +113,16 @@ export class RoomManager {
       this.cleanupTimers.delete(roomId);
     }
 
+    // Auto-resume playback if paused due to empty room
+    if (room.wasAutoPausedByEmpty && room.currentVideo) {
+      room.wasAutoPausedByEmpty = false;
+      room.playback = {
+        ...room.playback,
+        isPlaying: true,
+        lastUpdatedTimestamp: Date.now(),
+      };
+    }
+
     // Check existing socket and remove if re-joining
     this.leaveRoom(socketId);
 
@@ -162,14 +172,24 @@ export class RoomManager {
     const wasHost = leavingMember.role === 'host' || leavingMember.user.channelId === room.hostUserId;
     room.members = room.members.filter((m) => m.socketId !== socketId);
 
-    // If room is empty, schedule cleanup timer with a 5-minute grace period
+    // If room is empty, pause video and schedule cleanup timer with a 5-minute grace period
     if (room.members.length === 0) {
+      if (room.playback.isPlaying) {
+        room.playback.currentTime = this.getCalculatedCurrentTime(room);
+        room.playback.isPlaying = false;
+        room.playback.lastUpdatedTimestamp = Date.now();
+        room.wasAutoPausedByEmpty = true;
+      }
+
       if (this.cleanupTimers.has(roomId)) {
         clearTimeout(this.cleanupTimers.get(roomId)!);
       }
       const timer = setTimeout(() => {
         const targetRoom = this.rooms.get(roomId);
         if (targetRoom && targetRoom.members.length === 0) {
+          if (targetRoom.bufferingState?.startTimeout) {
+            clearTimeout(targetRoom.bufferingState.startTimeout);
+          }
           this.rooms.delete(roomId);
         }
         this.cleanupTimers.delete(roomId);
@@ -605,6 +625,130 @@ export class RoomManager {
     }
 
     return true;
+  }
+
+  /**
+   * Get all active room IDs (used for server-side auto-advance ticks)
+   */
+  public getAllRoomIds(): string[] {
+    return Array.from(this.rooms.keys());
+  }
+
+  /**
+   * Server-side Auto-Advance Check
+   * If video duration has passed (calculated time >= duration + 1.5s),
+   * server automatically skips to next video so playback never gets stuck if client is in background.
+   */
+  public checkAutoAdvance(roomId: string): { currentVideo: VideoItem | null; room: RoomState } | null {
+    const room = this.rooms.get(roomId);
+    if (!room || !room.currentVideo || !room.playback.isPlaying || room.playback.isBuffering) {
+      return null;
+    }
+
+    const duration = room.currentVideo.duration;
+    if (!duration || duration <= 0) {
+      return null;
+    }
+
+    const calculatedTime = this.getCalculatedCurrentTime(room);
+    // If video reached or exceeded duration (+ 1.5s tolerance margin)
+    if (calculatedTime >= duration + 1.5) {
+      return this.nextVideo(roomId);
+    }
+
+    return null;
+  }
+
+  /**
+   * Start Buffering Handshake when a new video is loaded.
+   * Gives clients up to maxWaitMs (default 2.5s) to prepare their iframes,
+   * after which playback starts simultaneously for all viewers.
+   */
+  public startBuffering(
+    roomId: string,
+    maxWaitMs: number = 2500,
+    onStart?: (room: RoomState) => void
+  ): RoomState | null {
+    const room = this.rooms.get(roomId);
+    if (!room || !room.currentVideo) return null;
+
+    // Clear any existing buffering timer
+    if (room.bufferingState?.startTimeout) {
+      clearTimeout(room.bufferingState.startTimeout);
+    }
+
+    room.playback = {
+      ...room.playback,
+      isPlaying: false,
+      isBuffering: true,
+      currentTime: 0,
+      lastUpdatedTimestamp: Date.now(),
+    };
+
+    const timeout = setTimeout(() => {
+      this.finishBuffering(roomId, onStart);
+    }, maxWaitMs);
+
+    room.bufferingState = {
+      isWaiting: true,
+      readyClients: new Set<string>(),
+      startTimeout: timeout,
+    };
+
+    return room;
+  }
+
+  /**
+   * Mark a client as ready for the current video.
+   * If all active members in the room are ready, start playback immediately without waiting for timeout.
+   */
+  public markClientReady(
+    roomId: string,
+    socketId: string,
+    onStart?: (room: RoomState) => void
+  ): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room || !room.bufferingState || !room.bufferingState.isWaiting) {
+      return false;
+    }
+
+    room.bufferingState.readyClients.add(socketId);
+
+    // If all room members are ready, start playback immediately
+    const totalMembers = room.members.length;
+    if (totalMembers > 0 && room.bufferingState.readyClients.size >= totalMembers) {
+      this.finishBuffering(roomId, onStart);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Finish Buffering and start playback simultaneously
+   */
+  public finishBuffering(roomId: string, onStart?: (room: RoomState) => void): RoomState | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    if (room.bufferingState?.startTimeout) {
+      clearTimeout(room.bufferingState.startTimeout);
+    }
+    room.bufferingState = undefined;
+
+    room.playback = {
+      ...room.playback,
+      isPlaying: !!room.currentVideo,
+      isBuffering: false,
+      currentTime: 0,
+      lastUpdatedTimestamp: Date.now(),
+    };
+
+    if (onStart) {
+      onStart(room);
+    }
+
+    return room;
   }
 }
 

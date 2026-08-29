@@ -45,6 +45,7 @@ interface SoundCloudPlayerProps {
   role: UserRole;
   onVideoControl: (isPlaying: boolean, currentTime: number, playbackRate?: number) => void;
   onVideoEnded: () => void;
+  onVideoReady?: (videoId?: string) => void;
 }
 
 export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
@@ -53,6 +54,7 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
   role,
   onVideoControl,
   onVideoEnded,
+  onVideoReady,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const widgetRef = useRef<SoundCloudWidget | null>(null);
@@ -97,6 +99,7 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
 
         widget.bind(SC.Widget.Events.READY, () => {
           setIsReady(true);
+          onVideoReady?.(trackUrl);
 
           // Listen to widget state changes
           widget.bind(SC.Widget.Events.PLAY, () => {
@@ -180,7 +183,7 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
         widgetRef.current?.seekTo(targetTimeMs);
       }
 
-      if (playback.isPlaying) {
+      if (playback.isPlaying && !playback.isBuffering) {
         widgetRef.current?.play();
       } else {
         widgetRef.current?.pause();

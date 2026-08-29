@@ -365,6 +365,96 @@ describe('RoomManager Tests', () => {
     const queuedItem = updatedRoom?.queue.find((q) => q.videoId === 'vid-original');
     expect(queuedItem?.addedBy.channelName).toBe('재신청자');
   });
+
+  it('should auto-pause playback when all members leave, and auto-resume on re-joining', () => {
+    const room = roomManager.createRoom({
+      title: '빈방 일시정지 테스트룸',
+      hostUser,
+    });
+
+    const joinRes = roomManager.joinRoom(room.id, 'socket-h1', hostUser);
+    expect(joinRes).not.toBeNull();
+
+    const video = { id: 'v1', videoId: 'vid-1', title: '1', thumbnailUrl: '', addedBy: hostUser };
+    roomManager.addToQueue(room.id, video);
+    expect(roomManager.getRoom(room.id)?.playback.isPlaying).toBe(true);
+
+    // Host leaves -> members become 0
+    const leaveRes = roomManager.leaveRoom('socket-h1');
+    expect(leaveRes?.room?.members.length).toBe(0);
+    expect(leaveRes?.room?.playback.isPlaying).toBe(false);
+    expect(leaveRes?.room?.wasAutoPausedByEmpty).toBe(true);
+
+    // Host re-joins
+    const reJoinRes = roomManager.joinRoom(room.id, 'socket-h2', hostUser);
+    expect(reJoinRes?.room.members.length).toBe(1);
+    expect(reJoinRes?.room.playback.isPlaying).toBe(true);
+    expect(reJoinRes?.room.wasAutoPausedByEmpty).toBe(false);
+  });
+
+  it('should auto-advance to next video when current video duration passes', () => {
+    const room = roomManager.createRoom({
+      title: '자동 넘김 테스트룸',
+      hostUser,
+    });
+
+    const v1 = { id: 'v1', videoId: 'vid-1', title: '짧은영상1', duration: 10, thumbnailUrl: '', addedBy: hostUser };
+    const v2 = { id: 'v2', videoId: 'vid-2', title: '다음영상2', duration: 20, thumbnailUrl: '', addedBy: hostUser };
+
+    roomManager.addToQueue(room.id, v1);
+    roomManager.addToQueue(room.id, v2);
+
+    // Not yet finished
+    const advanceNotYet = roomManager.checkAutoAdvance(room.id);
+    expect(advanceNotYet).toBeNull();
+
+    // Fast forward playback time to 12s (10s + 2s > 10 + 1.5s tolerance)
+    const targetRoom = roomManager.getRoom(room.id)!;
+    targetRoom.playback.currentTime = 12;
+    targetRoom.playback.lastUpdatedTimestamp = Date.now();
+
+    // Now auto-advance should trigger
+    const advanceDone = roomManager.checkAutoAdvance(room.id);
+    expect(advanceDone).not.toBeNull();
+    expect(advanceDone?.currentVideo?.videoId).toBe('vid-2');
+    expect(advanceDone?.room.history.length).toBe(1);
+    expect(advanceDone?.room.history[0].videoId).toBe('vid-1');
+  });
+
+  it('should manage buffering handshake correctly', () => {
+    const room = roomManager.createRoom({
+      title: '버퍼링 핸드셰이크 테스트룸',
+      hostUser,
+    });
+
+    roomManager.joinRoom(room.id, 's1', hostUser);
+    roomManager.joinRoom(room.id, 's2', viewerUser);
+
+    const v1 = { id: 'v1', videoId: 'vid-1', title: '1', thumbnailUrl: '', addedBy: hostUser };
+    roomManager.addToQueue(room.id, v1);
+
+    let started = false;
+    roomManager.startBuffering(room.id, 2000, () => {
+      started = true;
+    });
+
+    const roomState = roomManager.getRoom(room.id)!;
+    expect(roomState.playback.isBuffering).toBe(true);
+    expect(roomState.playback.isPlaying).toBe(false);
+
+    // Client 1 ready
+    const ready1 = roomManager.markClientReady(room.id, 's1', () => { started = true; });
+    expect(ready1).toBe(false); // only 1 of 2 ready
+
+    // Client 2 ready -> all ready -> trigger immediate playback
+    const ready2 = roomManager.markClientReady(room.id, 's2', (r) => {
+      started = true;
+      expect(r.playback.isPlaying).toBe(true);
+      expect(r.playback.isBuffering).toBe(false);
+    });
+    expect(ready2).toBe(true);
+    expect(started).toBe(true);
+  });
 });
 
 

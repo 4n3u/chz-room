@@ -59,6 +59,7 @@ export interface PlaybackState {
   currentTime: number;
   lastUpdatedTimestamp: number;
   playbackRate: number;
+  isBuffering?: boolean;
 }
 
 export interface RoomState {

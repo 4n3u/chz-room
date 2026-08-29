@@ -8,6 +8,65 @@ import { logger } from '../utils/logger';
 import crypto from 'crypto';
 
 export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManager) {
+  // Helper to start buffering for a new video with handshake and timeout fallback
+  const startNewVideoBuffering = (roomId: string, currentVideo: VideoItem | null) => {
+    if (!currentVideo) {
+      io.to(roomId).emit('video:sync', {
+        videoId: null,
+        isPlaying: false,
+        isBuffering: false,
+        currentTime: 0,
+        lastUpdatedTimestamp: Date.now(),
+        playbackRate: 1,
+      });
+      return;
+    }
+
+    // 1. Emit buffering state so clients prepare players
+    io.to(roomId).emit('video:sync', {
+      videoId: currentVideo.videoId,
+      isPlaying: false,
+      isBuffering: true,
+      currentTime: 0,
+      lastUpdatedTimestamp: Date.now(),
+      playbackRate: 1,
+    });
+
+    // 2. Start buffering countdown (2.5 seconds max)
+    roomManager.startBuffering(roomId, 2500, (startedRoom) => {
+      logger.info(`[Socket] Buffering completed for room "${roomId}", broadcasting simultaneous start.`);
+      io.to(roomId).emit('video:sync', {
+        videoId: startedRoom.currentVideo?.videoId || null,
+        isPlaying: startedRoom.playback.isPlaying,
+        isBuffering: false,
+        currentTime: 0,
+        lastUpdatedTimestamp: startedRoom.playback.lastUpdatedTimestamp,
+        playbackRate: startedRoom.playback.playbackRate,
+      });
+    });
+  };
+
+  // Background ticker for Server-side Auto-Advance (1-second tick)
+  const autoAdvanceInterval = setInterval(() => {
+    const roomIds = roomManager.getAllRoomIds();
+    for (const rId of roomIds) {
+      const advanceRes = roomManager.checkAutoAdvance(rId);
+      if (advanceRes) {
+        logger.info(
+          `[Socket] Server-side auto-advance triggered for room "${rId}" (next: "${advanceRes.currentVideo?.title || 'none'}")`
+        );
+        io.to(rId).emit('queue:updated', {
+          currentVideo: advanceRes.currentVideo,
+          queue: advanceRes.room.queue,
+        });
+        io.to(rId).emit('history:updated', {
+          history: advanceRes.room.history,
+        });
+        startNewVideoBuffering(rId, advanceRes.currentVideo);
+      }
+    }
+  }, 1000);
+
   io.on('connection', (socket: Socket) => {
     // 1. Join Room
     socket.on(
@@ -88,6 +147,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         io.to(roomId).emit('video:sync', {
           videoId: updatedRoom.currentVideo?.videoId,
           isPlaying: updatedRoom.playback.isPlaying,
+          isBuffering: false,
           currentTime: updatedRoom.playback.currentTime,
           lastUpdatedTimestamp: updatedRoom.playback.lastUpdatedTimestamp,
           playbackRate: updatedRoom.playback.playbackRate,
@@ -96,6 +156,24 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         callback?.({ success: true });
       }
     );
+
+    // 2-1. Video Ready Handshake - Client ready signal
+    socket.on('video:ready', (data: { roomId: string }) => {
+      const { roomId } = data;
+      if (!roomId) return;
+
+      roomManager.markClientReady(roomId, socket.id, (startedRoom) => {
+        logger.info(`[Socket] All clients ready for room "${roomId}", starting playback immediately.`);
+        io.to(roomId).emit('video:sync', {
+          videoId: startedRoom.currentVideo?.videoId || null,
+          isPlaying: startedRoom.playback.isPlaying,
+          isBuffering: false,
+          currentTime: 0,
+          lastUpdatedTimestamp: startedRoom.playback.lastUpdatedTimestamp,
+          playbackRate: startedRoom.playback.playbackRate,
+        });
+      });
+    });
 
     // 3. Add to Queue - Anyone can add (Subject to queueLimitMode for viewers)
     socket.on(
@@ -175,22 +253,16 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           `[Socket] User "${user.channelName}" added item to queue in room "${roomId}" (source: ${videoItem.source}, id: ${videoItem.videoId}, title: "${videoItem.title}")`
         );
 
-        // If it became the currently playing video immediately
-        if (wasEmpty) {
-          io.to(roomId).emit('video:sync', {
-            videoId: updatedRoom.currentVideo?.videoId,
-            isPlaying: updatedRoom.playback.isPlaying,
-            currentTime: 0,
-            lastUpdatedTimestamp: updatedRoom.playback.lastUpdatedTimestamp,
-            playbackRate: 1,
-          });
-        }
-
         // Broadcast updated queue and current video state
         io.to(roomId).emit('queue:updated', {
           currentVideo: updatedRoom.currentVideo,
           queue: updatedRoom.queue,
         });
+
+        // If it became the currently playing video immediately, start buffering handshake
+        if (wasEmpty && updatedRoom.currentVideo) {
+          startNewVideoBuffering(roomId, updatedRoom.currentVideo);
+        }
 
         callback?.({ success: true, videoItem });
       }
@@ -306,15 +378,6 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           `[Socket] User "${user.channelName}" skipped to next video in room "${roomId}" (current: "${nextRes.currentVideo?.title || 'none'}")`
         );
 
-        // Broadcast video sync and queue update
-        io.to(roomId).emit('video:sync', {
-          videoId: nextRes.currentVideo?.videoId || null,
-          isPlaying: !!nextRes.currentVideo,
-          currentTime: 0,
-          lastUpdatedTimestamp: Date.now(),
-          playbackRate: 1,
-        });
-
         io.to(roomId).emit('queue:updated', {
           currentVideo: nextRes.currentVideo,
           queue: nextRes.room.queue,
@@ -323,6 +386,9 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         io.to(roomId).emit('history:updated', {
           history: nextRes.room.history,
         });
+
+        // Start simultaneous buffering for next video
+        startNewVideoBuffering(roomId, nextRes.currentVideo);
 
         callback?.({ success: true });
       }
@@ -350,14 +416,6 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           `[Socket] User "${user.channelName}" played queue item "${queueItemId}" immediately in room "${roomId}"`
         );
 
-        io.to(roomId).emit('video:sync', {
-          videoId: playRes.currentVideo?.videoId || null,
-          isPlaying: true,
-          currentTime: 0,
-          lastUpdatedTimestamp: Date.now(),
-          playbackRate: 1,
-        });
-
         io.to(roomId).emit('queue:updated', {
           currentVideo: playRes.currentVideo,
           queue: playRes.room.queue,
@@ -366,6 +424,9 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         io.to(roomId).emit('history:updated', {
           history: playRes.room.history,
         });
+
+        // Start simultaneous buffering for target video
+        startNewVideoBuffering(roomId, playRes.currentVideo);
 
         callback?.({ success: true });
       }
@@ -402,13 +463,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         });
 
         if (res.room.currentVideo?.id === res.reAddedVideo.id) {
-          io.to(roomId).emit('video:sync', {
-            videoId: res.room.currentVideo.videoId,
-            isPlaying: true,
-            currentTime: 0,
-            lastUpdatedTimestamp: Date.now(),
-            playbackRate: 1,
-          });
+          startNewVideoBuffering(roomId, res.room.currentVideo);
         }
 
         callback?.({ success: true });
@@ -437,14 +492,6 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           `[Socket] User "${user.channelName}" played history item "${historyItemId}" immediately in room "${roomId}"`
         );
 
-        io.to(roomId).emit('video:sync', {
-          videoId: res.currentVideo?.videoId || null,
-          isPlaying: true,
-          currentTime: 0,
-          lastUpdatedTimestamp: Date.now(),
-          playbackRate: 1,
-        });
-
         io.to(roomId).emit('queue:updated', {
           currentVideo: res.currentVideo,
           queue: res.room.queue,
@@ -453,6 +500,8 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         io.to(roomId).emit('history:updated', {
           history: res.room.history,
         });
+
+        startNewVideoBuffering(roomId, res.currentVideo);
 
         callback?.({ success: true });
       }

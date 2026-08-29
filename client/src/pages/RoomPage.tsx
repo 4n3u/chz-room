@@ -68,6 +68,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     error,
     clearError,
     sendVideoControl,
+    sendVideoReady,
     addToQueue,
     removeFromQueue,
     reorderQueue,
@@ -196,6 +197,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               role={role}
               onVideoControl={sendVideoControl}
               onVideoEnded={skipNext}
+              onVideoReady={sendVideoReady}
             />
           ) : (
             <YouTubePlayer
@@ -204,6 +206,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               role={role}
               onVideoControl={sendVideoControl}
               onVideoEnded={skipNext}
+              onVideoReady={sendVideoReady}
             />
           )}
 

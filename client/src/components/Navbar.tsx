@@ -219,19 +219,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                   <Moon size={16} color="var(--text-secondary)" />
                 )}
               </button>
-              <button
-                onClick={() => setShowMockModal(true)}
-                style={{
-                  fontSize: 12,
-                  color: 'var(--text-dim)',
-                  cursor: 'pointer',
-                  padding: '4px 6px',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-dim)')}
-              >
-                테스트 로그인
-              </button>
+              {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') && (
+                <button
+                  onClick={() => setShowMockModal(true)}
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--text-dim)',
+                    cursor: 'pointer',
+                    padding: '4px 6px',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-dim)')}
+                >
+                  테스트 로그인
+                </button>
+              )}
               <button
                 className="btn-primary"
                 onClick={loginWithChzzk}
@@ -244,7 +246,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
         </div>
       </header>
 
-      <MockLoginModal isOpen={showMockModal} onClose={() => setShowMockModal(false)} />
+      {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') && (
+        <MockLoginModal isOpen={showMockModal} onClose={() => setShowMockModal(false)} />
+      )}
     </>
   );
 };

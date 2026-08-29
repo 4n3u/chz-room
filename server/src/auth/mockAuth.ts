@@ -5,8 +5,17 @@ import { ChzzkUser } from './types';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'chzzk_sync_tube_super_secret_jwt_key_2026_safe';
 
-// Mock Login for local testing & instant demo
+// Mock Login for local testing & instant demo (Disabled in production for security)
 router.post('/mock-login', (req: Request, res: Response) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowMockInProd = process.env.ENABLE_MOCK_AUTH === 'true';
+
+  if (isProduction && !allowMockInProd) {
+    return res.status(403).json({
+      error: '프로덕션 환경에서는 테스트 로그인이 비활성화되어 있습니다. 치지직 공식 로그인을 사용해주세요.',
+    });
+  }
+
   const { channelId, channelName, channelImageUrl, verifiedMark } = req.body;
 
   if (!channelName) {

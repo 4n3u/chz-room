@@ -9,16 +9,21 @@ interface LobbyPageProps {
 }
 
 export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
-  const { user } = useAuth();
+  const { user, loginWithChzzk } = useAuth();
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMockLoginModal, setShowMockLoginModal] = useState(false);
+  const isDev = import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 
   // 1-Click Instant Room Creation
   const handleCreateRoom = async () => {
     if (!user) {
-      setShowMockLoginModal(true);
+      if (isDev) {
+        setShowMockLoginModal(true);
+      } else {
+        loginWithChzzk();
+      }
       return;
     }
 
@@ -165,13 +170,15 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom }) => {
         </form>
       </div>
 
-      <MockLoginModal
-        isOpen={showMockLoginModal}
-        onClose={() => {
-          setShowMockLoginModal(false);
-          handleCreateRoom();
-        }}
-      />
+      {isDev && (
+        <MockLoginModal
+          isOpen={showMockLoginModal}
+          onClose={() => {
+            setShowMockLoginModal(false);
+            handleCreateRoom();
+          }}
+        />
+      )}
     </div>
   );
 };

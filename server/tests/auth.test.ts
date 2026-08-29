@@ -46,6 +46,23 @@ describe('Auth API Tests', () => {
     expect(meRes.body.user.channelName).toBe('침착맨');
   });
 
+  it('POST /api/auth/mock-login should return 403 in production environment', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    delete process.env.ENABLE_MOCK_AUTH;
+
+    try {
+      const res = await request(app)
+        .post('/api/auth/mock-login')
+        .send({ channelName: '악의적유저' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toContain('프로덕션 환경에서는 테스트 로그인이 비활성화되어 있습니다');
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
+  });
+
   it('POST /api/auth/logout should clear cookie', async () => {
     const logoutRes = await request(app).post('/api/auth/logout');
     expect(logoutRes.status).toBe(200);

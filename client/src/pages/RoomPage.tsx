@@ -175,13 +175,15 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
             >
               치지직 로그인
             </button>
-            <button
-              className="btn-secondary"
-              onClick={() => setShowMockLogin(true)}
-              style={{ padding: '6px 14px', fontSize: 12 }}
-            >
-              테스트 로그인
-            </button>
+            {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') && (
+              <button
+                className="btn-secondary"
+                onClick={() => setShowMockLogin(true)}
+                style={{ padding: '6px 14px', fontSize: 12 }}
+              >
+                테스트 로그인
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -531,7 +533,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
         onUpdateSettings={updateRoomSettings}
       />
 
-      <MockLoginModal isOpen={showMockLogin} onClose={() => setShowMockLogin(false)} />
+      {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') && (
+        <MockLoginModal isOpen={showMockLogin} onClose={() => setShowMockLogin(false)} />
+      )}
     </div>
   );
 };

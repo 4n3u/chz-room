@@ -29,8 +29,34 @@ const io = new SocketIOServer(httpServer, {
 });
 
 // Register real-time sync socket handlers
-registerSyncHandlers(io, globalRoomManager);
+const cleanupSyncHandlers = registerSyncHandlers(io, globalRoomManager);
 
-httpServer.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   logger.info(`Server started successfully on port ${PORT} (env: ${process.env.NODE_ENV || 'development'})`);
 });
+
+// Graceful Shutdown
+const gracefulShutdown = (signal: string) => {
+  logger.info(`[Process] ${signal} signal received. Starting graceful shutdown...`);
+
+  cleanupSyncHandlers();
+  globalRoomManager.destroy();
+
+  io.close(() => {
+    logger.info('[Socket.io] All socket connections closed.');
+  });
+
+  server.close(() => {
+    logger.info('[HTTP] HTTP server closed gracefully.');
+    process.exit(0);
+  });
+
+  // Force close if graceful shutdown takes too long (10s)
+  setTimeout(() => {
+    logger.error('[Process] Forced shutdown after 10s timeout.');
+    process.exit(1);
+  }, 10000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

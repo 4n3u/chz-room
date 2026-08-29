@@ -69,7 +69,6 @@ export interface RoomState {
   hostUserId: string;
   moderatorUserIds: string[];
   isPrivate: boolean;
-  password?: string;
   createdAt: number;
   currentVideo: VideoItem | null;
   playback: PlaybackState;
@@ -87,7 +86,6 @@ export interface CreateRoomOptions {
   title: string;
   hostUser: ChzzkUser;
   isPrivate?: boolean;
-  password?: string;
 }
 
 export interface PublicRoomSummary {

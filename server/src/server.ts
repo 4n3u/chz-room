@@ -92,7 +92,7 @@ export function createApp(): Express {
   });
 
   app.post('/api/rooms', createRoomLimiter, (req: Request, res: Response) => {
-    const { title, hostUser, isPrivate, password } = req.body;
+    const { title, hostUser, isPrivate } = req.body;
 
     if (!title || !hostUser?.channelId) {
       return res.status(400).json({ error: '룸 제목과 호스트 사용자 정보가 필요합니다.' });
@@ -102,7 +102,6 @@ export function createApp(): Express {
       title,
       hostUser,
       isPrivate: !!isPrivate,
-      password: password || undefined,
     });
 
     res.json({ success: true, room });
@@ -114,12 +113,10 @@ export function createApp(): Express {
       return res.status(404).json({ error: '룸을 찾을 수 없습니다.' });
     }
 
-    // Don't expose password in response
-    const { password, ...safeRoom } = room;
-    res.json({ room: safeRoom, hasPassword: !!password });
+    res.json({ room });
   });
 
-  // Serve frontend static build in production (Single-process deployment)
+  // Serve frontend static build in production with optimal caching headers
   const possibleDistPaths = [
     path.resolve(__dirname, '../../client/dist'),
     path.resolve(__dirname, '../client/dist'),
@@ -129,11 +126,23 @@ export function createApp(): Express {
   const clientDistPath = possibleDistPaths.find((p) => fs.existsSync(p));
 
   if (clientDistPath) {
-    app.use(express.static(clientDistPath));
+    app.use(
+      express.static(clientDistPath, {
+        maxAge: '1y',
+        immutable: true,
+        setHeaders: (res, filePath) => {
+          // HTML files should never be cached so users always receive latest releases
+          if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          }
+        },
+      })
+    );
     app.get('*', (req: Request, res: Response) => {
       if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'API route not found' });
       }
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(path.join(clientDistPath, 'index.html'));
     });
   }

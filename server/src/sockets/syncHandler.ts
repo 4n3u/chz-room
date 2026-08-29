@@ -68,6 +68,8 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
   }, 1000);
 
   io.on('connection', (socket: Socket) => {
+    let lastQueueAddTimestamp = 0;
+
     // 1. Join Room
     socket.on(
       'room:join',
@@ -186,6 +188,12 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
         if (!roomId || !url || !user?.channelId) {
           return callback?.({ error: '유효하지 않은 요청입니다.' });
         }
+
+        const now = Date.now();
+        if (now - lastQueueAddTimestamp < 1500) {
+          return callback?.({ error: '영상을 추가하는 속도가 너무 빠릅니다. 잠시 후 다시 시도해주세요.' });
+        }
+        lastQueueAddTimestamp = now;
 
         let videoItem: VideoItem | null = null;
 
@@ -612,4 +620,8 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
     socket.on('room:leave', handleDisconnect);
     socket.on('disconnect', handleDisconnect);
   });
+
+  return () => {
+    clearInterval(autoAdvanceInterval);
+  };
 }

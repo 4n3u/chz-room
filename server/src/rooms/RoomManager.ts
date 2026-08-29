@@ -47,7 +47,6 @@ export class RoomManager {
       hostUserId: options.hostUser.channelId,
       moderatorUserIds: [],
       isPrivate: !!options.isPrivate,
-      password: options.password || undefined,
       createdAt: now,
       currentVideo: null,
       playback: initialPlayback,
@@ -749,6 +748,24 @@ export class RoomManager {
     }
 
     return room;
+  }
+
+  /**
+   * Clean up all timers and resources during graceful shutdown
+   */
+  public destroy(): void {
+    for (const timer of this.cleanupTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.cleanupTimers.clear();
+
+    for (const room of this.rooms.values()) {
+      if (room.bufferingState?.startTimeout) {
+        clearTimeout(room.bufferingState.startTimeout);
+      }
+    }
+    this.rooms.clear();
+    this.socketToRoom.clear();
   }
 }
 

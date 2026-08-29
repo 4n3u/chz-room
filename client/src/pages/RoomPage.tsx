@@ -84,12 +84,45 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
 
   const canManage = role === 'host' || role === 'mod';
 
-  const handleCopyLink = () => {
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn('[Clipboard] navigator.clipboard failed, falling back to textarea copy:', err);
+      }
+    }
+
+    // Fallback for HTTP (non-secure context) e.g. http://101.79.29.53
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return successful;
+    } catch (err) {
+      console.error('[Clipboard] Fallback copy failed:', err);
+      return false;
+    }
+  };
+
+  const handleCopyLink = async () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
+    const success = await copyToClipboard(url);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    } else {
+      window.prompt('초대 링크를 복사해주세요:', url);
+    }
   };
 
   return (

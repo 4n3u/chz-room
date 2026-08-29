@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
         >
           <img
             src="/icon.svg"
-            alt="chz-room logo"
+            alt="치즈룸 로고"
             style={{
               width: 18,
               height: 18,
@@ -68,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
               display: 'block',
             }}
           />
-          <span>chz-room</span>
+          <span>치즈룸</span>
         </div>
 
         {/* Right Section: Auth & Profile */}

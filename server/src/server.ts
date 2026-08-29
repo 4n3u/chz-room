@@ -143,7 +143,38 @@ export function createApp(): Express {
         return res.status(404).json({ error: 'API route not found' });
       }
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.sendFile(path.join(clientDistPath, 'index.html'));
+
+      const indexPath = path.join(clientDistPath, 'index.html');
+
+      // Dynamic OpenGraph injection for shared room links (e.g. /room/abc123)
+      if (req.path.startsWith('/room/')) {
+        const roomId = req.path.replace('/room/', '').split('/')[0].split('?')[0];
+        const room = globalRoomManager.getRoom(roomId);
+        if (room) {
+          try {
+            let html = fs.readFileSync(indexPath, 'utf-8');
+            const roomTitle = `${room.title} - 치즈룸`;
+            const currentTitle = room.currentVideo?.title ? `현재 재생: ${room.currentVideo.title}` : '실시간 영상 같이보기';
+            const roomDesc = `${currentTitle} | 참가자 ${room.members.length}명과 함께 시청 중`;
+            const roomThumb = room.currentVideo?.thumbnailUrl || '/favicon.png';
+
+            html = html
+              .replace(/<title>.*?<\/title>/, `<title>${roomTitle}</title>`)
+              .replace(/<meta property="og:title" content=".*?" \/>/, `<meta property="og:title" content="${roomTitle}" />`)
+              .replace(/<meta property="og:description" content=".*?" \/>/, `<meta property="og:description" content="${roomDesc}" />`)
+              .replace(/<meta property="og:image" content=".*?" \/>/, `<meta property="og:image" content="${roomThumb}" />`)
+              .replace(/<meta name="twitter:title" content=".*?" \/>/, `<meta name="twitter:title" content="${roomTitle}" />`)
+              .replace(/<meta name="twitter:description" content=".*?" \/>/, `<meta name="twitter:description" content="${roomDesc}" />`)
+              .replace(/<meta name="twitter:image" content=".*?" \/>/, `<meta name="twitter:image" content="${roomThumb}" />`);
+
+            return res.send(html);
+          } catch (err) {
+            // Fallback to static sendFile on any error
+          }
+        }
+      }
+
+      res.sendFile(indexPath);
     });
   }
 

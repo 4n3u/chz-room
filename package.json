@@ -13,7 +13,6 @@
     "dev:client": "npm --prefix client run dev",
     "install:all": "npm install",
     "build": "npm --prefix client run build && npm --prefix server run build",
-    "package:botkeep": "powershell -ExecutionPolicy Bypass -File ./scripts/package-botkeep.ps1",
     "start": "npm run build && node index.js",
     "test": "npm --prefix server test"
   },

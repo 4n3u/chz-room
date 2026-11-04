@@ -6,7 +6,7 @@ Set-Location $repoRoot
 
 npm run build
 
-Write-Host "Staging files for botkeep-deploy.zip..." -ForegroundColor Cyan
+Write-Host "Staging files for botkeep deployment..." -ForegroundColor Cyan
 $stage = Join-Path $repoRoot ".deploy_staging"
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Path "$stage\client", "$stage\server" -Force | Out-Null
@@ -31,7 +31,13 @@ $deployPkgJson = $deployPkg | ConvertTo-Json -Depth 5
 [System.IO.File]::WriteAllText((Join-Path $stage "package.json"), $deployPkgJson)
 
 $zipPath = Join-Path $repoRoot "botkeep-deploy.zip"
-if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+try {
+  if (Test-Path $zipPath) { Remove-Item -Force $zipPath -ErrorAction Stop }
+} catch {
+  Write-Warning "botkeep-deploy.zip is locked by an external app (e.g. Bandizip). Creating botkeep-deploy-update.zip instead."
+  $zipPath = Join-Path $repoRoot "botkeep-deploy-update.zip"
+  if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+}
 
 Compress-Archive -Path "$stage\*" -DestinationPath $zipPath -Force
 Remove-Item -Recurse -Force $stage

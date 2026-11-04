@@ -73,6 +73,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
 
         {/* Right Section: Auth & Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Always visible Theme Toggle Button */}
+          <button
+            className="btn-icon"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            aria-label="Toggle theme"
+            style={{ width: 34, height: 34 }}
+          >
+            {theme === 'dark' ? (
+              <Sun size={16} color="var(--brand-green)" />
+            ) : (
+              <Moon size={16} color="var(--text-secondary)" />
+            )}
+          </button>
           {user ? (
             /* Logged in: Profile Pill with Dropdown */
             <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -215,21 +229,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
               )}
             </div>
           ) : (
-            /* Not logged in: Simple Login Buttons + Minimal Theme Button */
+            /* Not logged in: Simple Login Buttons */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                className="btn-icon"
-                onClick={toggleTheme}
-                title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-                aria-label="Toggle theme"
-                style={{ width: 34, height: 34 }}
-              >
-                {theme === 'dark' ? (
-                  <Sun size={16} color="var(--brand-green)" />
-                ) : (
-                  <Moon size={16} color="var(--text-secondary)" />
-                )}
-              </button>
               {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') && (
                 <button
                   onClick={() => setShowMockModal(true)}

@@ -4,6 +4,7 @@ dist/
 build/
 .cache/
 botkeep-deploy.zip
+botkeep-deploy-update.zip
 .deploy_staging/
 
 # Environment files

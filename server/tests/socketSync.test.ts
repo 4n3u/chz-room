@@ -121,6 +121,7 @@ describe('Socket.io Realtime Sync Integration Tests', () => {
     const syncData = await videoSyncPromise;
     expect(syncData.isPlaying).toBe(true);
     expect(syncData.currentTime).toBe(45.5);
+    expect(syncData.senderSocketId).toBe(hostSocket.id);
 
     // 6. Viewer attempts to control playback -> should receive error
     const viewerControlErrorPromise = new Promise<any>((resolve) => {
@@ -144,5 +145,59 @@ describe('Socket.io Realtime Sync Integration Tests', () => {
 
     hostSocket.disconnect();
     viewerSocket.disconnect();
+  });
+  it('should prevent double skip on rapid or stale queue:next requests', async () => {
+    const room = globalRoomManager.createRoom({
+      title: '스킵 방지 테스트 룸',
+      hostUser,
+    });
+
+    const hostSocket: ClientSocket = Client(`http://localhost:${serverPort}`);
+    await new Promise<void>((resolve) => hostSocket.on('connect', () => resolve()));
+
+    await new Promise<any>((resolve) => {
+      hostSocket.emit('room:join', { roomId: room.id, user: hostUser }, resolve);
+    });
+
+    // Add 3 videos
+    const v1 = { id: 'item-1', videoId: 'vid-1', title: 'Video 1', duration: 100, thumbnailUrl: '', addedBy: hostUser };
+    const v2 = { id: 'item-2', videoId: 'vid-2', title: 'Video 2', duration: 100, thumbnailUrl: '', addedBy: hostUser };
+    const v3 = { id: 'item-3', videoId: 'vid-3', title: 'Video 3', duration: 100, thumbnailUrl: '', addedBy: hostUser };
+
+    globalRoomManager.addToQueue(room.id, v1);
+    globalRoomManager.addToQueue(room.id, v2);
+    globalRoomManager.addToQueue(room.id, v3);
+
+    // Initial current video is v1
+    expect(globalRoomManager.getRoom(room.id)?.currentVideo?.videoId).toBe('vid-1');
+
+    // Advance timestamp so first skip is allowed
+    globalRoomManager.getRoom(room.id)!.lastSkipTimestamp = Date.now() - 2000;
+
+    // First skip advances to v2
+    const firstSkip = await new Promise<any>((resolve) => {
+      hostSocket.emit('queue:next', { roomId: room.id, user: hostUser, currentVideoId: 'vid-1' }, resolve);
+    });
+    expect(firstSkip.success).toBe(true);
+    expect(globalRoomManager.getRoom(room.id)?.currentVideo?.videoId).toBe('vid-2');
+
+    // Immediate second skip (within 1500ms cooldown) should be IGNORED
+    const secondSkip = await new Promise<any>((resolve) => {
+      hostSocket.emit('queue:next', { roomId: room.id, user: hostUser, currentVideoId: 'vid-2' }, resolve);
+    });
+    expect(secondSkip.success).toBe(true);
+    // Still vid-2, not skipped to vid-3!
+    expect(globalRoomManager.getRoom(room.id)?.currentVideo?.videoId).toBe('vid-2');
+
+    // Stale skip specifying vid-1 when current is vid-2 should also be IGNORED
+    // simulate cooldown passed
+    globalRoomManager.getRoom(room.id)!.lastSkipTimestamp = Date.now() - 2000;
+    const staleSkip = await new Promise<any>((resolve) => {
+      hostSocket.emit('queue:next', { roomId: room.id, user: hostUser, currentVideoId: 'vid-1' }, resolve);
+    });
+    expect(staleSkip.success).toBe(true);
+    expect(globalRoomManager.getRoom(room.id)?.currentVideo?.videoId).toBe('vid-2');
+
+    hostSocket.disconnect();
   });
 });

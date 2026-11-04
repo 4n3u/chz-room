@@ -354,6 +354,7 @@ export class RoomManager {
     // If no video is currently playing, set as currentVideo and play immediately
     if (!room.currentVideo) {
       room.currentVideo = video;
+      room.lastSkipTimestamp = Date.now();
       room.playback = {
         isPlaying: true,
         currentTime: 0,
@@ -476,6 +477,7 @@ export class RoomManager {
     }
 
     room.currentVideo = nextVideo;
+    room.lastSkipTimestamp = Date.now();
     room.playback = {
       isPlaying: !!nextVideo,
       currentTime: 0,
@@ -505,6 +507,7 @@ export class RoomManager {
 
     const [targetVideo] = room.queue.splice(itemIndex, 1);
     room.currentVideo = targetVideo;
+    room.lastSkipTimestamp = Date.now();
     room.playback = {
       isPlaying: true,
       currentTime: 0,
@@ -571,6 +574,7 @@ export class RoomManager {
     };
 
     room.currentVideo = targetVideo;
+    room.lastSkipTimestamp = Date.now();
     room.playback = {
       isPlaying: true,
       currentTime: 0,

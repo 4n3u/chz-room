@@ -153,6 +153,7 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
           currentTime: updatedRoom.playback.currentTime,
           lastUpdatedTimestamp: updatedRoom.playback.lastUpdatedTimestamp,
           playbackRate: updatedRoom.playback.playbackRate,
+          senderSocketId: socket.id,
         });
 
         callback?.({ success: true });
@@ -368,13 +369,41 @@ export function registerSyncHandlers(io: SocketIOServer, roomManager: RoomManage
     socket.on(
       'queue:next',
       (
-        data: { roomId: string; user: ChzzkUser },
+        data: { roomId: string; user: ChzzkUser; currentVideoId?: string; currentItemId?: string },
         callback?: (res: { success?: boolean; error?: string }) => void
       ) => {
-        const { roomId, user } = data;
+        const { roomId, user, currentVideoId, currentItemId } = data;
+        const room = roomManager.getRoom(roomId);
+        if (!room) {
+          return callback?.({ error: '룸을 찾을 수 없습니다.' });
+        }
+
         if (!roomManager.hasControlPermission(roomId, user?.channelId)) {
           logger.warn(`[Socket] Permission denied on queue:next in room "${roomId}" (user: ${user?.channelName})`);
           return callback?.({ error: '다음 영상으로 넘길 권한이 없습니다.' });
+        }
+
+        const now = Date.now();
+        // Cooldown guard: Prevent duplicate skips within 1500ms
+        if (room.lastSkipTimestamp && now - room.lastSkipTimestamp < 1500) {
+          logger.info(
+            `[Socket] Ignored rapid queue:next in room "${roomId}" (cooldown active: ${now - room.lastSkipTimestamp}ms)`
+          );
+          return callback?.({ success: true });
+        }
+
+        // Stale video guard: If target video is specified and does not match current video, ignore stale skip
+        if (currentVideoId && room.currentVideo && room.currentVideo.videoId !== currentVideoId) {
+          logger.info(
+            `[Socket] Ignored stale queue:next in room "${roomId}" (target: ${currentVideoId}, current: ${room.currentVideo.videoId})`
+          );
+          return callback?.({ success: true });
+        }
+        if (currentItemId && room.currentVideo && room.currentVideo.id !== currentItemId) {
+          logger.info(
+            `[Socket] Ignored stale queue:next in room "${roomId}" (target item: ${currentItemId}, current item: ${room.currentVideo.id})`
+          );
+          return callback?.({ success: true });
         }
 
         const nextRes = roomManager.nextVideo(roomId);

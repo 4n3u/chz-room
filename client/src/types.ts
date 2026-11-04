@@ -60,6 +60,8 @@ export interface PlaybackState {
   lastUpdatedTimestamp: number;
   playbackRate: number;
   isBuffering?: boolean;
+  senderSocketId?: string;
+  isOwnSync?: boolean;
 }
 
 export interface RoomState {

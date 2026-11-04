@@ -44,7 +44,7 @@ interface SoundCloudPlayerProps {
   playback: PlaybackState;
   role: UserRole;
   onVideoControl: (isPlaying: boolean, currentTime: number, playbackRate?: number) => void;
-  onVideoEnded: () => void;
+  onVideoEnded: (videoId?: string, itemId?: string) => void;
   onVideoReady?: (videoId?: string) => void;
 }
 
@@ -67,6 +67,8 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
   const isInternalChangeRef = useRef(false);
   const lastSyncTimestampRef = useRef<number>(0);
   const lastTrackUrlRef = useRef<string | null>(null);
+  const lastUserControlTimeRef = useRef<number>(0);
+  const hasEndedRef = useRef<boolean>(false);
 
   // 1. Load SoundCloud Widget API script once
   useEffect(() => {
@@ -85,6 +87,7 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
   // 2. Initialize or reload Widget when track changes
   useEffect(() => {
     if (!currentVideo || currentVideo.source !== 'soundcloud') return;
+    hasEndedRef.current = false;
 
     const trackUrl = currentVideo.soundcloudUrl || currentVideo.videoId;
     if (!trackUrl) return;
@@ -105,6 +108,7 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
           widget.bind(SC.Widget.Events.PLAY, () => {
             if (isInternalChangeRef.current) return;
             if (isHostOrMod) {
+              lastUserControlTimeRef.current = Date.now();
               widget.getPosition((posMs) => {
                 onVideoControl(true, Math.floor(posMs / 1000));
               });
@@ -114,6 +118,7 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
           widget.bind(SC.Widget.Events.PAUSE, () => {
             if (isInternalChangeRef.current) return;
             if (isHostOrMod) {
+              lastUserControlTimeRef.current = Date.now();
               widget.getPosition((posMs) => {
                 onVideoControl(false, Math.floor(posMs / 1000));
               });
@@ -123,6 +128,7 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
           widget.bind(SC.Widget.Events.SEEK, (data: any) => {
             if (isInternalChangeRef.current) return;
             if (isHostOrMod) {
+              lastUserControlTimeRef.current = Date.now();
               const posSec = data?.currentPosition ? Math.floor(data.currentPosition / 1000) : 0;
               widget.isPaused((paused) => {
                 onVideoControl(!paused, posSec);
@@ -131,7 +137,11 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
           });
 
           widget.bind(SC.Widget.Events.FINISH, () => {
-            onVideoEnded();
+            if (hasEndedRef.current) return;
+            hasEndedRef.current = true;
+            if (isHostOrMod) {
+              onVideoEnded(currentVideo?.videoId, currentVideo?.id);
+            }
           });
         });
       } catch (err) {
@@ -178,8 +188,9 @@ export const SoundCloudPlayer: React.FC<SoundCloudPlayerProps> = ({
     widgetRef.current.getPosition((currentPosMs) => {
       const timeDiff = Math.abs(currentPosMs - targetTimeMs);
 
-      // Re-sync seek position if drift > 2 seconds
-      if (timeDiff > 2000) {
+      // Re-sync seek position if drift > 2.5 seconds and not own echo
+      const isOwnEcho = playback.isOwnSync || (Date.now() - lastUserControlTimeRef.current < 3000);
+      if (!isOwnEcho && timeDiff > 2500) {
         widgetRef.current?.seekTo(targetTimeMs);
       }
 

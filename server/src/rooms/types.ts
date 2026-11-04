@@ -55,6 +55,7 @@ export interface PlaybackState {
   lastUpdatedTimestamp: number;
   playbackRate: number;
   isBuffering?: boolean;
+  senderSocketId?: string;
 }
 
 export interface BufferingState {
@@ -80,6 +81,7 @@ export interface RoomState {
   queueLimitMode?: QueueLimitMode;
   wasAutoPausedByEmpty?: boolean;
   bufferingState?: BufferingState;
+  lastSkipTimestamp?: number;
 }
 
 export interface CreateRoomOptions {

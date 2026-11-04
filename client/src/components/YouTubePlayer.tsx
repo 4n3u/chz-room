@@ -14,7 +14,7 @@ interface YouTubePlayerProps {
   playback: PlaybackState;
   role: UserRole;
   onVideoControl: (isPlaying: boolean, currentTime: number, playbackRate?: number) => void;
-  onVideoEnded: () => void;
+  onVideoEnded: (videoId?: string, itemId?: string) => void;
   onVideoReady?: (videoId?: string) => void;
 }
 
@@ -31,6 +31,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const isApiLoadedRef = useRef(false);
   const isInternalChangeRef = useRef(false);
   const lastControlSentTimeRef = useRef<number>(0);
+  const lastUserControlTimeRef = useRef<number>(0);
+  const hasEndedRef = useRef<boolean>(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [isAutoplayMuted, setIsAutoplayMuted] = useState(false);
   
@@ -158,8 +160,10 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
             // Video ended
             if (event.data === window.YT.PlayerState.ENDED) {
+              if (hasEndedRef.current) return;
+              hasEndedRef.current = true;
               if (canControl) {
-                onVideoEnded();
+                onVideoEnded(currentVideo?.videoId, currentVideo?.id);
               }
               return;
             }
@@ -175,9 +179,11 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
               if (event.data === window.YT.PlayerState.PLAYING) {
                 lastControlSentTimeRef.current = now;
+                lastUserControlTimeRef.current = now;
                 onVideoControl(true, currentTime, playbackRate);
               } else if (event.data === window.YT.PlayerState.PAUSED) {
                 lastControlSentTimeRef.current = now;
+                lastUserControlTimeRef.current = now;
                 onVideoControl(false, currentTime, playbackRate);
               }
             } else {
@@ -222,47 +228,69 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       player.setPlaybackRate(playback.playbackRate);
     }
 
-    // Check drift & seek if needed
-    const expectedTime = playback.isPlaying
-      ? playback.currentTime + (Date.now() - playback.lastUpdatedTimestamp) / 1000
-      : playback.currentTime;
+    // Check drift & seek if needed:
+    // If this sync is an echo of the current client's own control action,
+    // or if the user recently controlled the player (< 3000ms),
+    // DO NOT force seek on the local player! The local player is already at the user's chosen location.
+    const isOwnEcho = playback.isOwnSync || (Date.now() - lastUserControlTimeRef.current < 3000);
+    if (!isOwnEcho) {
+      const expectedTime = playback.isPlaying
+        ? playback.currentTime + (Date.now() - playback.lastUpdatedTimestamp) / 1000
+        : playback.currentTime;
 
-    const playerTime = player.getCurrentTime();
-    if (Math.abs(playerTime - expectedTime) > 1.5) {
-      player.seekTo(Math.max(0, expectedTime), true);
+      const playerTime = player.getCurrentTime();
+      const driftThreshold = canControl ? 2.5 : 1.8;
+      if (Math.abs(playerTime - expectedTime) > driftThreshold) {
+        player.seekTo(Math.max(0, expectedTime), true);
+      }
     }
 
     setTimeout(() => {
       isInternalChangeRef.current = false;
-    }, 600);
-  }, [playback.isPlaying, playback.isBuffering, playback.currentTime, playback.lastUpdatedTimestamp, playback.playbackRate, isLocalDesynced]);
+    }, 800);
+  }, [
+    playback.isPlaying,
+    playback.isBuffering,
+    playback.currentTime,
+    playback.lastUpdatedTimestamp,
+    playback.playbackRate,
+    playback.isOwnSync,
+    isLocalDesynced,
+    canControl,
+    playerReady,
+    currentVideo,
+  ]);
 
-  // 4. Periodic Drift Correction Check (Only when synchronized with the room)
+  // 4. Periodic Drift Correction Check (Only for non-controlling synchronized viewers)
   useEffect(() => {
     if (!playerRef.current || !playerReady || !currentVideo || !playback.isPlaying || playback.isBuffering) return;
-    if (!canControl && isLocalDesynced) return;
+    // The controller is the master clock for the room! Never auto-correct controller against server echo!
+    if (canControl) return;
+    // If viewer is enjoying private local seek/pause, do not interrupt
+    if (isLocalDesynced) return;
+    if (Date.now() - lastUserControlTimeRef.current < 3000) return;
 
     const interval = setInterval(() => {
       if (isInternalChangeRef.current || !playerRef.current?.getCurrentTime) return;
-      if (!canControl && isLocalDesynced) return;
+      if (isLocalDesynced) return;
 
       const player = playerRef.current;
       const expectedTime =
         playback.currentTime + (Date.now() - playback.lastUpdatedTimestamp) / 1000;
       const actualTime = player.getCurrentTime();
 
-      // If drifted more than 1.5 seconds, smoothly seek
-      if (Math.abs(actualTime - expectedTime) > 1.5) {
+      // If drifted more than 2.0 seconds, smoothly seek
+      if (Math.abs(actualTime - expectedTime) > 2.0) {
         isInternalChangeRef.current = true;
         player.seekTo(Math.max(0, expectedTime), true);
         setTimeout(() => {
           isInternalChangeRef.current = false;
-        }, 500);
+        }, 600);
       }
-    }, 2000);
+    }, 2500);
 
     return () => clearInterval(interval);
-  }, [playback, playerReady, currentVideo, isLocalDesynced]);
+  }, [playback, playerReady, currentVideo, isLocalDesynced, canControl]);
 
   // Manual Re-sync handler for viewers
   const handleSyncToLive = () => {

@@ -3,7 +3,7 @@ node_modules/
 dist/
 build/
 .cache/
-botkeep-deploy.zip
+botkeep-deploy*
 .deploy_staging/
 
 # Environment files

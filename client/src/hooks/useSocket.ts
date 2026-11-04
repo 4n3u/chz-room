@@ -86,6 +86,8 @@ export function useSocket({ roomId, user }: UseSocketProps) {
         currentTime: data.currentTime,
         lastUpdatedTimestamp: data.lastUpdatedTimestamp,
         playbackRate: data.playbackRate,
+        senderSocketId: data.senderSocketId,
+        isOwnSync: !!data.senderSocketId && data.senderSocketId === socket.id,
       });
     });
 
@@ -224,12 +226,24 @@ export function useSocket({ roomId, user }: UseSocketProps) {
     [roomId, user]
   );
 
-  const skipNext = useCallback(() => {
-    if (!socketRef.current || !user) return;
-    socketRef.current.emit('queue:next', { roomId, user }, (res: any) => {
-      if (res?.error) setError(res.error);
-    });
-  }, [roomId, user]);
+  const skipNext = useCallback(
+    (targetVideoId?: string, targetItemId?: string) => {
+      if (!socketRef.current || !user) return;
+      socketRef.current.emit(
+        'queue:next',
+        {
+          roomId,
+          user,
+          currentVideoId: targetVideoId || currentVideo?.videoId,
+          currentItemId: targetItemId || currentVideo?.id,
+        },
+        (res: any) => {
+          if (res?.error) setError(res.error);
+        }
+      );
+    },
+    [roomId, user, currentVideo]
+  );
 
   const reAddFromHistory = useCallback(
     (historyItemId: string) => {

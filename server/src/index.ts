@@ -41,7 +41,7 @@ const io = new SocketIOServer(httpServer, {
 // Register real-time sync socket handlers
 const cleanupSyncHandlers = registerSyncHandlers(io, globalRoomManager);
 
-const server = httpServer.listen(PORT, () => {
+const server = httpServer.listen(Number(PORT), '0.0.0.0', () => {
   logger.info(`Server started successfully on port ${PORT} (env: ${process.env.NODE_ENV || 'development'})`);
 });
 

@@ -2,12 +2,15 @@
   "name": "chzzk-sync-tube",
   "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
+    "install:all": "npm --prefix client install && npm --prefix server install",
     "build": "npm --prefix client run build && npm --prefix server run build",
-    "start": "npm --prefix server start",
+    "package:botkeep": "powershell -ExecutionPolicy Bypass -File ./scripts/package-botkeep.ps1",
+    "start": "node index.js",
     "test": "npm --prefix server test"
   },
   "devDependencies": {

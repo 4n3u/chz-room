@@ -22,6 +22,9 @@ dotenv.config();
 export function createApp(): Express {
   const app = express();
 
+  // Trust reverse proxies (Botkeep, Cloudflare, Nginx, etc.)
+  app.set('trust proxy', 1);
+
   const isProduction = process.env.NODE_ENV === 'production';
   const CLIENT_URL = process.env.CLIENT_URL || (isProduction ? true : 'http://localhost:5173');
 
@@ -126,6 +129,8 @@ export function createApp(): Express {
     path.resolve(__dirname, '../client/dist'),
     path.resolve(process.cwd(), 'client/dist'),
     path.resolve(process.cwd(), '../client/dist'),
+    path.resolve(process.cwd(), 'botkeep-deploy/client/dist'),
+    path.resolve(process.cwd(), 'dist'),
   ];
   const clientDistPath = possibleDistPaths.find((p) => fs.existsSync(p));
 

@@ -164,42 +164,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome }) => {
                     </p>
                   </div>
 
-                  {/* Dark / Light Mode Switch Item (Above Logout) */}
-                  <button
-                    onClick={() => {
-                      toggleTheme();
-                    }}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: 13,
-                      color: 'var(--text-primary)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background-color 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-dark-hover)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {theme === 'dark' ? (
-                        <Sun size={15} color="var(--brand-green)" />
-                      ) : (
-                        <Moon size={15} color="var(--text-secondary)" />
-                      )}
-                      <span>{theme === 'dark' ? '라이트 모드' : '다크 모드'}</span>
-                    </div>
-                    <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                      {theme === 'dark' ? 'Dark' : 'Light'}
-                    </span>
-                  </button>
-
-                  <div style={{ height: 1, backgroundColor: 'var(--border-subtle)', margin: '4px 0' }} />
-
                   {/* Logout Button */}
                   <button
                     onClick={() => {

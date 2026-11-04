@@ -12,6 +12,17 @@ export interface YouTubeVideoMetadata {
   isShorts?: boolean;
 }
 
+function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
 /**
  * Checks if a given input URL is explicitly a YouTube Shorts URL
  */
@@ -83,6 +94,13 @@ export function parseYouTubeId(input: string): string | null {
 const metadataCache = new Map<string, { data: YouTubeVideoMetadata; timestamp: number }>();
 const METADATA_CACHE_TTL = 30 * 60 * 1000;
 
+const DEFAULT_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+};
+
 /**
  * Fetches YouTube video metadata: title, channel name, thumbnail, upload date, and view count
  */
@@ -105,31 +123,62 @@ export async function fetchYouTubeMetadata(videoId: string): Promise<YouTubeVide
   let viewCountFormatted: string | undefined = undefined;
   let isShorts: boolean = false;
 
-  // 1. Fetch oEmbed metadata (Title, Author Name, Author URL, Thumbnail)
+  // 1. Fetch oEmbed metadata (Title, Author Name, Author URL, Thumbnail) with browser headers
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-    const res = await axios.get(oembedUrl, { timeout: 4000 });
+    const res = await axios.get(oembedUrl, {
+      headers: DEFAULT_HEADERS,
+      timeout: 5000,
+    });
     if (res.data) {
-      title = res.data.title || fallbackTitle;
+      if (res.data.title) {
+        title = decodeHtmlEntities(res.data.title);
+      }
       thumbnailUrl = res.data.thumbnail_url || fallbackThumbnail;
-      authorName = res.data.author_name || undefined;
+      authorName = res.data.author_name ? decodeHtmlEntities(res.data.author_name) : undefined;
       authorUrl = res.data.author_url || undefined;
     }
   } catch (error) {
-    // Continue with fallback
+    // Continue with fallback scraping
   }
 
-  // 2. Fetch HTML page to scrape uploadDate, duration, and viewCount
+  // 2. Fetch HTML page to scrape uploadDate, duration, viewCount, and fallback title/author
   try {
     const pageRes = await axios.get(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'ko-KR,ko;q=0.9',
-      },
-      timeout: 5000,
+      headers: DEFAULT_HEADERS,
+      timeout: 6000,
     });
-    const html = pageRes.data;
+    const html = String(pageRes.data || '');
+
+    // Fallback title from HTML if oEmbed failed or returned fallback
+    if (title === fallbackTitle) {
+      const ogTitle = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i);
+      const metaTitle = html.match(/<meta\s+name=["']title["']\s+content=["'](.*?)["']/i);
+      const titleTag = html.match(/<title>(.*?)<\/title>/i);
+      const rawTitle = ogTitle?.[1] || metaTitle?.[1] || (titleTag?.[1] ? titleTag[1].replace(/ - YouTube$/, '') : null);
+      if (rawTitle && rawTitle.trim()) {
+        title = decodeHtmlEntities(rawTitle.trim());
+      }
+    }
+
+    // Fallback author from HTML if oEmbed didn't provide it
+    if (!authorName) {
+      const linkAuthor = html.match(/<link\s+itemprop=["']name["']\s+content=["'](.*?)["']/i);
+      const ownerChannelName = html.match(/"ownerChannelName":\s*"([^"]+)"/);
+      const authorField = html.match(/"author":\s*"([^"]+)"/);
+      const rawAuthor = linkAuthor?.[1] || ownerChannelName?.[1] || authorField?.[1];
+      if (rawAuthor && rawAuthor.trim()) {
+        authorName = decodeHtmlEntities(rawAuthor.trim());
+      }
+    }
+
+    // Fallback thumbnail from og:image
+    if (thumbnailUrl === fallbackThumbnail) {
+      const ogImage = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i);
+      if (ogImage && ogImage[1]) {
+        thumbnailUrl = ogImage[1];
+      }
+    }
 
     // datePublished
     const dateMatch = html.match(/itemprop=["']datePublished["']\s+content=["']([^"']+)["']/i);
